@@ -1,0 +1,27 @@
+configuration:
+  email:
+    name: Filen-E-Mail
+    description: E-Mail-Adresse des Filen-Kontos.
+  password:
+    name: Filen-Passwort
+    description: Passwort des Filen-Kontos.
+  api_key:
+    name: Filen-API-Schlüssel
+    description: Einmalig mit der Filen-CLI erzeugen (filen export-api-key). Damit ist beim Start keine 2FA-Eingabe nötig.
+  root_folder:
+    name: Ordner in Filen
+    description: Nur dieser Ordner wird per WebDAV freigegeben. Wird beim Start angelegt, falls er fehlt.
+  webdav_user:
+    name: WebDAV-Benutzer
+    description: Benutzername, mit dem sich Home Assistant am WebDAV-Server anmeldet.
+  webdav_password:
+    name: WebDAV-Passwort
+    description: Eigenes Passwort für den WebDAV-Server, nicht das Filen-Passwort.
+  cache_mode:
+    name: Zwischenspeicher
+    description: "off: Uploads gehen direkt zu Filen, Fehler sieht Home Assistant sofort (empfohlen). writes: erst lokal puffern, dann hochladen."
+  log_level:
+    name: Protokollstufe
+    description: Ausführlichkeit des Protokolls.
+network:
+  8080/tcp: Nur nötig für Zugriff von anderen Geräten

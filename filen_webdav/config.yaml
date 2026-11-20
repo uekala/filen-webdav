@@ -1,0 +1,38 @@
+name: Filen WebDAV
+version: "0.1.0"
+slug: filen_webdav
+description: Stellt einen Ordner in Filen.io per WebDAV bereit, damit Home Assistant dort Backups ablegen kann
+url: https://github.com/uekala/filen-webdav
+arch:
+  - aarch64
+  - amd64
+startup: services
+boot: auto
+init: false
+# Startet Home Assistant neu, wenn der WebDAV-Server nicht mehr antwortet.
+watchdog: "tcp://[HOST]:[PORT:8080]"
+ports:
+  8080/tcp: null
+ports_description:
+  8080/tcp: Nur nötig für Zugriff von anderen Geräten; Home Assistant selbst nutzt das interne Netz
+# Der Zwischenspeicher gehört nicht ins Backup.
+backup_exclude:
+  - "cache/*"
+options:
+  email: ""
+  password: ""
+  api_key: ""
+  root_folder: "/Home Assistant"
+  webdav_user: homeassistant
+  webdav_password: ""
+  cache_mode: "off"
+  log_level: INFO
+schema:
+  email: email
+  password: password
+  api_key: password
+  root_folder: str
+  webdav_user: str
+  webdav_password: password
+  cache_mode: list(off|writes)
+  log_level: list(ERROR|NOTICE|INFO|DEBUG)

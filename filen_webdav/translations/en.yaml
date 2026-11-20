@@ -1,0 +1,27 @@
+configuration:
+  email:
+    name: Filen email
+    description: Email address of the Filen account.
+  password:
+    name: Filen password
+    description: Password of the Filen account.
+  api_key:
+    name: Filen API key
+    description: Create once with the Filen CLI (filen export-api-key). No 2FA prompt is needed at startup.
+  root_folder:
+    name: Folder in Filen
+    description: Only this folder is shared via WebDAV. Created at startup if missing.
+  webdav_user:
+    name: WebDAV user
+    description: User name Home Assistant uses to log in to the WebDAV server.
+  webdav_password:
+    name: WebDAV password
+    description: Separate password for the WebDAV server, not the Filen password.
+  cache_mode:
+    name: Cache
+    description: "off: uploads go straight to Filen and Home Assistant sees errors immediately (recommended). writes: buffer locally first, then upload."
+  log_level:
+    name: Log level
+    description: Log verbosity.
+network:
+  8080/tcp: Only needed for access from other devices
