@@ -44,9 +44,17 @@ def norm(name):
     return re.sub(r"_[0-9a-f]{8}(?=\.[^.]+$)", "", name).lower()
 
 
+TOLERANZ = 0.03  # Google entfernt beim Export über die API Metadaten – Größe weicht dann leicht ab
+
+
 def vorhanden(index, f):
-    """Gilt nur als vorhanden, wenn Name UND Größe übereinstimmen – im Zweifel wird kopiert."""
-    return f.get("Size") in index.get(norm(f["Name"]), ())
+    """Vorhanden, wenn ein Foto mit gleichem Namen (inkl. Zähler „(1)“) existiert und die Größe gleich ist
+    oder höchstens 3 % abweicht. Größere Abweichung = anderes Foto, wird kopiert."""
+    size = f.get("Size") or 0
+    for s in index.get(norm(f["Name"]), ()):
+        if s == size or (s and size and abs(s - size) <= TOLERANZ * max(s, size)):
+            return True
+    return False
 
 
 def od_list(rc, path, modtime=False):
@@ -119,6 +127,7 @@ def analyse(rc):
 
 # ------------------------------------------------------------------ Umzug
 ROOT = "."  # Eintrag für die losen Dateien im Hauptverzeichnis von OneDrive
+TRESOR = ("Persönlicher Tresor", "Personal Vault")
 
 
 def glob_escape(text):
@@ -141,6 +150,9 @@ def ausschluesse(eintrag, alle_pfade):
             continue
         rel = glob_escape(rel)
         regeln += [f"/{rel}", f"/{rel}/**"]
+    if e == "":
+        # Persönlicher Tresor ist gesperrt und für rclone nicht lesbar
+        regeln += [f"/{t}" for t in TRESOR] + [f"/{t}/**" for t in TRESOR]
     filt = {"ExcludeRule": regeln} if regeln else {}
     if eintrag == ROOT:
         filt["MaxDepth"] = 1
@@ -228,7 +240,7 @@ def loesche(rc, path):
     p = path.strip("/")
     if p == ROOT:
         # nur die losen Dateien im Hauptverzeichnis (keine Ordner)
-        rc.call_job("operations/delete", fs=OD, _filter={"MaxDepth": 1})
+        rc.call_job("operations/delete", fs=OD, _filter=ausschluesse(ROOT, []))
         log("GELÖSCHT (OneDrive-Papierkorb): lose Dateien im Hauptverzeichnis")
         return
     if not p:

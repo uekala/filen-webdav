@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.3.6
+
+- Persönlicher Tresor von OneDrive wird ausgelassen (gesperrt, rclone meldete „ObjectHandle is Invalid“).
+- Foto-Abgleich: gleicher Name (inkl. Zähler) und höchstens 3 % Größenunterschied gilt als vorhanden – Google
+  entfernt beim Export über die API Metadaten (Microsofts Google-Fotos-Import).
+
 ## 0.3.5
 
 - Foto-Abgleich strenger: Ein Foto gilt nur als vorhanden, wenn Name (inkl. Zähler wie „(1)“) **und** Größe
