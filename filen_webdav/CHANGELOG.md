@@ -1,5 +1,9 @@
 # Änderungen
 
+## 0.3.4
+
+- Foto-Abgleich erkennt Dateien aus Microsofts Google-Fotos-Import (Kennung wie `_83a5f51f` vor der Endung).
+
 ## 0.3.3
 
 - OneDrive-Umzug: Pfade, die an anderer Stelle gelistet sind (z. B. „Ohne Kopie löschen“ oder ein eigener

@@ -39,7 +39,11 @@ def gb(n):
 
 
 def norm(name):
-    return re.sub(r"\(\d+\)(?=\.[^.]+$)", "", name).lower()
+    """Vergleichsname: ohne Takeout-Zähler „(1)“ und ohne die 8-stellige Kennung, die Microsofts
+    Google-Fotos-Import anhängt (IMG_6174_83a5f51f.JPG -> img_6174.jpg)."""
+    name = re.sub(r"\(\d+\)(?=\.[^.]+$)", "", name)
+    name = re.sub(r"_[0-9a-f]{8}(?=\.[^.]+$)", "", name)
+    return name.lower()
 
 
 def od_list(rc, path, modtime=False):
