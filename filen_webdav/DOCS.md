@@ -42,6 +42,28 @@ Add-on starten und im Protokoll auf `WebDAV-Server startet auf Port 8080` warten
 
 Danach unter *Einstellungen → System → Backups → Backup-Einstellungen* den neuen Speicherort **WebDAV** anhaken.
 
+## 4. Fotosortierung (optional)
+
+Ordnet Fotos und Videos in Filen nach Aufnahmedatum:
+
+```
+/Fotos/2025/2025-08/20250814_153012.jpg
+/Fotos/_Duplikate/…        exakte Duplikate (gleicher Inhalt) – nach Kontrolle selbst löschen
+/Fotos/_Ohne-Datum/…       kein Datum gefunden
+/Fotos/_Google-Metadaten/… JSON-Dateien aus Google Takeout
+```
+
+Datum: zuerst aus dem Dateinamen, dann aus der Google-JSON, zuletzt aus den EXIF-Daten der Datei
+(dafür wird die Datei kurz heruntergeladen). Gleichnamige Dateien werden durchnummeriert, nie überschrieben.
+
+1. **Fotosortierung aktiv** einschalten, **Nur Probelauf** anlassen, Quellordner prüfen, App neu starten.
+2. Nach dem Lauf kommt eine Benachrichtigung; der Bericht liegt in `share/filen_webdav/fotosortierung_…_probelauf.csv`.
+3. Passt der Bericht: **Nur Probelauf** ausschalten, App neu starten.
+4. Danach läuft die Sortierung täglich zur eingestellten Uhrzeit für neue Dateien in den Quellordnern.
+
+Kamera-Upload vom Handy: Die Filen-App kann neue Uploads selbst nach Datum ordnen. Den Kamera-Upload-Ordner nur
+als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erneut hochlädt.
+
 ## Hinweise
 
 - Backups mit Verschlüsselung in Home Assistant lassen; Filen verschlüsselt zusätzlich Ende-zu-Ende.

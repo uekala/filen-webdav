@@ -19,9 +19,27 @@ configuration:
     description: Eigenes Passwort für den WebDAV-Server, nicht das Filen-Passwort.
   cache_mode:
     name: Zwischenspeicher
-    description: "off: Uploads gehen direkt zu Filen, Fehler sieht Home Assistant sofort (empfohlen). writes: erst lokal puffern, dann hochladen."
+    description: 'off: Uploads gehen direkt zu Filen, Fehler sieht Home Assistant sofort (empfohlen). writes: erst lokal puffern, dann hochladen.'
   log_level:
     name: Protokollstufe
     description: Ausführlichkeit des Protokolls.
+  foto_sortierung:
+    name: Fotosortierung aktiv
+    description: Sortiert Fotos und Videos aus den Quellordnern nach Aufnahmedatum in Ordner JJJJ/JJJJ-MM.
+  foto_probelauf:
+    name: Nur Probelauf
+    description: 'An: nichts wird verschoben, nur ein Bericht (CSV in share/filen_webdav) und eine Benachrichtigung. Erst ausschalten, wenn der Bericht passt.'
+  foto_quellen:
+    name: Quellordner in Filen
+    description: Ordner, die sortiert werden sollen. Den Kamera-Upload-Ordner nur eintragen, wenn die Filen-App verschobene Fotos nicht erneut hochlädt.
+  foto_ziel:
+    name: Zielordner in Filen
+    description: Hier entstehen JJJJ/JJJJ-MM sowie _Duplikate, _Ohne-Datum und _Google-Metadaten.
+  foto_uhrzeit:
+    name: Uhrzeit für den täglichen Lauf
+    description: HH:MM
+  foto_beim_start:
+    name: Beim Start sortieren
+    description: Zusätzlich direkt nach dem Start der App laufen (praktisch nach Änderung der Einstellungen).
 network:
   8080/tcp: Nur nötig für Zugriff von anderen Geräten

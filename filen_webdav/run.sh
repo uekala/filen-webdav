@@ -23,6 +23,7 @@ DAV_USER=$(opt webdav_user)
 DAV_PASS=$(opt webdav_password)
 CACHE_MODE=$(opt cache_mode)
 LOG_LEVEL=$(opt log_level)
+FOTO_SORTIERUNG=$(jq -r '.foto_sortierung // false' "$OPTIONS")
 
 [ -n "$EMAIL" ] || fail "Option 'email' fehlt."
 [ -n "$PASSWORD" ] || fail "Option 'password' fehlt."
@@ -55,6 +56,12 @@ rclone mkdir "filen:$ROOT" --log-level "$LOG_LEVEL" \
     || fail "Ordner '$ROOT' konnte nicht angelegt werden."
 
 mkdir -p /data/cache
+
+if [ "$FOTO_SORTIERUNG" = "true" ]; then
+    echo "[filen-webdav] Fotosortierung aktiv – starte rclone-Fernsteuerung (nur lokal) und Sortierer"
+    rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --log-level "$LOG_LEVEL" &
+    python3 /fotosortierer.py --dienst &
+fi
 
 echo "[filen-webdav] WebDAV-Server startet auf Port 8080, Ordner '$ROOT', Zwischenspeicher: $CACHE_MODE"
 exec rclone serve webdav "filen:$ROOT" \

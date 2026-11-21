@@ -19,9 +19,27 @@ configuration:
     description: Separate password for the WebDAV server, not the Filen password.
   cache_mode:
     name: Cache
-    description: "off: uploads go straight to Filen and Home Assistant sees errors immediately (recommended). writes: buffer locally first, then upload."
+    description: 'off: uploads go straight to Filen and Home Assistant sees errors immediately (recommended). writes: buffer locally first, then upload.'
   log_level:
     name: Log level
     description: Log verbosity.
+  foto_sortierung:
+    name: Photo sorting enabled
+    description: Sorts photos and videos from the source folders by capture date into YYYY/YYYY-MM.
+  foto_probelauf:
+    name: Dry run only
+    description: 'On: nothing is moved, only a report (CSV in share/filen_webdav) and a notification.'
+  foto_quellen:
+    name: Source folders in Filen
+    description: Folders to sort.
+  foto_ziel:
+    name: Target folder in Filen
+    description: YYYY/YYYY-MM plus _Duplikate, _Ohne-Datum and _Google-Metadaten are created here.
+  foto_uhrzeit:
+    name: Daily run time
+    description: HH:MM
+  foto_beim_start:
+    name: Sort on start
+    description: Also run right after the app starts.
 network:
   8080/tcp: Only needed for access from other devices

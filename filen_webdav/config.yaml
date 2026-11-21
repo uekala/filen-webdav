@@ -1,7 +1,7 @@
 name: Filen WebDAV
-version: "0.1.0"
+version: "0.2.0"
 slug: filen_webdav
-description: Stellt einen Ordner in Filen.io per WebDAV bereit, damit Home Assistant dort Backups ablegen kann
+description: WebDAV-Zugang zu Filen.io für HA-Backups, dazu ein Sortierer, der Fotos in Filen nach Aufnahmedatum ordnet
 url: https://github.com/uekala/filen-webdav
 arch:
   - aarch64
@@ -15,6 +15,12 @@ ports:
   8080/tcp: null
 ports_description:
   8080/tcp: Nur nötig für Zugriff von anderen Geräten; Home Assistant selbst nutzt das interne Netz
+# Für die Benachrichtigung nach der Fotosortierung.
+homeassistant_api: true
+# Berichte der Fotosortierung landen in /share/filen_webdav.
+map:
+  - type: share
+    read_only: false
 # Der Zwischenspeicher gehört nicht ins Backup.
 backup_exclude:
   - "cache/*"
@@ -27,6 +33,14 @@ options:
   webdav_password: ""
   cache_mode: "off"
   log_level: INFO
+  foto_sortierung: false
+  foto_probelauf: true
+  foto_quellen:
+    - /Fotos/Google-Fotos-Export-2026-11
+    - /Fotos/Google-Fotos-nur-Sept-Export
+  foto_ziel: /Fotos
+  foto_uhrzeit: "03:30"
+  foto_beim_start: true
 schema:
   email: email
   password: password
@@ -36,3 +50,10 @@ schema:
   webdav_password: password
   cache_mode: list(off|writes)
   log_level: list(ERROR|NOTICE|INFO|DEBUG)
+  foto_sortierung: bool
+  foto_probelauf: bool
+  foto_quellen:
+    - str
+  foto_ziel: str
+  foto_uhrzeit: match(^([01]\d|2[0-3]):[0-5]\d$)
+  foto_beim_start: bool
