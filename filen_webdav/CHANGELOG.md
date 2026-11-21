@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.2.2
+
+- Fotosortierung: Pfade aus der rclone-Fernsteuerung wurden doppelt zusammengesetzt (Quellordner zweimal);
+  dadurch waren Google-JSON und EXIF nicht lesbar und Dateien landeten fälschlich bei „Ohne Datum“.
+
 ## 0.2.1
 
 - Fotosortierung deutlich schneller: keine Hash-Abfrage pro Datei mehr (Filen braucht dafür je Datei eine

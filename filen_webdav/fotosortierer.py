@@ -64,7 +64,15 @@ class RC:
             if e.code == 404:
                 return []
             raise
-        return res.get("list", [])
+        # rclone liefert "Path" relativ zur Wurzel des Remotes (inkl. `remote`) – auf relativ kürzen
+        prefix = remote.strip("/") + "/"
+        out = []
+        for e in res.get("list", []):
+            p = e.get("Path", "")
+            if prefix != "/" and p.startswith(prefix):
+                e = dict(e, Path=p[len(prefix):])
+            out.append(e)
+        return out
 
     def move(self, src, dst):
         self.call("operations/movefile", srcFs=self.fs, srcRemote=src, dstFs=self.fs, dstRemote=dst)
