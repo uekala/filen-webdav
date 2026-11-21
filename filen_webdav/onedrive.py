@@ -39,11 +39,14 @@ def gb(n):
 
 
 def norm(name):
-    """Vergleichsname: ohne Takeout-Zähler „(1)“ und ohne die 8-stellige Kennung, die Microsofts
-    Google-Fotos-Import anhängt (IMG_6174_83a5f51f.JPG -> img_6174.jpg)."""
-    name = re.sub(r"\(\d+\)(?=\.[^.]+$)", "", name)
-    name = re.sub(r"_[0-9a-f]{8}(?=\.[^.]+$)", "", name)
-    return name.lower()
+    """Vergleichsname: ohne die 8-stellige Kennung, die Microsofts Google-Fotos-Import anhängt
+    (IMG_6174_83a5f51f.JPG -> img_6174.jpg). Zähler wie „(1)“ bleiben erhalten (Serienbilder!)."""
+    return re.sub(r"_[0-9a-f]{8}(?=\.[^.]+$)", "", name).lower()
+
+
+def vorhanden(index, f):
+    """Gilt nur als vorhanden, wenn Name UND Größe übereinstimmen – im Zweifel wird kopiert."""
+    return f.get("Size") in index.get(norm(f["Name"]), ())
 
 
 def od_list(rc, path, modtime=False):
@@ -196,7 +199,10 @@ def foto_abgleich(rc, path, foto_namen, probelauf, alle_pfade):
     dateien = [f for f in alle if ext_of(f["Name"]) in MEDIA_EXT]
     # Andere Dateien (außer Google-JSON/HTML) werden immer mitgenommen, damit beim Löschen nichts verloren geht
     sonstige = [f for f in alle if ext_of(f["Name"]) not in MEDIA_EXT | {"json", "html"}]
-    fehlen = [f for f in dateien if norm(f["Name"]) not in foto_namen] + sonstige
+    fehlen = [f for f in dateien if not vorhanden(foto_namen, f)] + sonstige
+    nur_name = sum(1 for f in dateien if not vorhanden(foto_namen, f) and norm(f["Name"]) in foto_namen)
+    if nur_name:
+        log(f"HINWEIS {src}: {nur_name} Dateien mit gleichem Namen, aber anderer Größe – werden sicherheitshalber übernommen")
     log(f"FOTOABGLEICH {src}: {len(dateien)} Fotos/Videos, davon schon in Filen: {len(dateien) - len(fehlen) + len(sonstige)}, "
         f"zu übernehmen: {len(fehlen) - len(sonstige)} Fotos/Videos + {len(sonstige)} andere Dateien "
         f"({gb(sum(f.get('Size', 0) for f in fehlen))})")
@@ -210,7 +216,7 @@ def foto_abgleich(rc, path, foto_namen, probelauf, alle_pfade):
         dst = f"Fotos/_Aus-OneDrive/{src}/{f['Path']}"
         try:
             rc.call("operations/copyfile", srcFs=OD, srcRemote=f"{src}/{f['Path']}", dstFs="filen:", dstRemote=dst)
-            foto_namen.add(norm(f["Name"]))
+            foto_namen.setdefault(norm(f["Name"]), set()).add(f.get("Size"))
         except Exception as e:
             fehler.append(f["Path"])
             log(f"FEHLER {src}/{f['Path']}: {e}")
@@ -245,7 +251,9 @@ def umzug(rc, opt):
     alle_pfade = kopieren + nur_loeschen + foto_quellen
     if foto_quellen:
         log("Lese vorhandene Fotos in Filen /Fotos …")
-        foto_namen = {norm(f["Name"]) for f in RC().list("Fotos")}
+        foto_namen = {}
+        for f in RC().list("Fotos"):
+            foto_namen.setdefault(norm(f["Name"]), set()).add(f.get("Size"))
         log(f"In Filen /Fotos: {len(foto_namen)} verschiedene Dateinamen")
         for p in foto_quellen:
             r = foto_abgleich(rc, p, foto_namen, probelauf, alle_pfade)

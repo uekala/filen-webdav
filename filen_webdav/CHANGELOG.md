@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.3.5
+
+- Foto-Abgleich strenger: Ein Foto gilt nur als vorhanden, wenn Name (inkl. Zähler wie „(1)“) **und** Größe
+  übereinstimmen. Serienbilder (0)/(1)/(2) werden nicht mehr zusammengeworfen; im Zweifel wird kopiert.
+
 ## 0.3.4
 
 - Foto-Abgleich erkennt Dateien aus Microsofts Google-Fotos-Import (Kennung wie `_83a5f51f` vor der Endung).
