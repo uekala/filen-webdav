@@ -64,7 +64,15 @@ fi
 
 if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ]; then
     echo "[filen-webdav] Starte rclone-Fernsteuerung (nur lokal)"
-    rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --log-level "$LOG_LEVEL" &
+    # Speichergrenze für Go: rclone räumt früher auf, statt den Green an den Rand zu bringen
+    # Wird rclone beendet (z. B. Speicher), startet es nach 10 s neu.
+    (
+        while true; do
+            GOMEMLIMIT=400MiB rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --use-mmap --log-level "$LOG_LEVEL"
+            echo "[filen-webdav] rclone-Fernsteuerung beendet (Code $?) – Neustart in 10 s"
+            sleep 10
+        done
+    ) &
 fi
 if [ "$FOTO_SORTIERUNG" = "true" ]; then
     echo "[filen-webdav] Fotosortierung aktiv"

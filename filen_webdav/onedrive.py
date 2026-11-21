@@ -47,29 +47,43 @@ def od_list(rc, path, modtime=False):
 
 
 # ------------------------------------------------------------------ Analyse
+def groesse(rc, path):
+    """Anzahl und Bytes eines Ordners, ohne die Dateiliste in den Speicher zu holen."""
+    r = rc.call_job("operations/size", fs=f"{OD}{path.strip('/')}")
+    return r.get("count", 0), r.get("bytes", 0)
+
+
 def analyse(rc):
-    log("Analyse: lese OneDrive komplett ein (kann einige Minuten dauern) …")
-    files = od_list(rc, "", modtime=True)
-    total = sum(f.get("Size", 0) for f in files)
-    log(f"OneDrive: {len(files)} Dateien, {gb(total)}")
-
+    log("Analyse: ermittle Ordnergrößen (speicherschonend) …")
+    odrc = RC(fs=OD)
     ordner = {}
-    for f in files:
-        parts = f["Path"].split("/")[:-1]
-        for depth in (1, 2, 3):
-            if len(parts) >= depth:
-                key = "/".join(parts[:depth])
-                ordner[key] = ordner.get(key, 0) + f.get("Size", 0)
+    total_n = total_b = 0
+    for d in odrc.list("", recurse=False, dirs=True):
+        n, b = groesse(rc, d["Name"])
+        ordner[d["Name"]] = b
+        total_n += n
+        total_b += b
+        if b >= 2e9:
+            for d2 in odrc.list(d["Name"], recurse=False, dirs=True):
+                ordner[f"{d['Name']}/{d2['Name']}"] = groesse(rc, f"{d['Name']}/{d2['Name']}")[1]
+    lose = odrc.list("", recurse=False)
+    total_n += len(lose)
+    total_b += sum(f.get("Size", 0) for f in lose)
+    for f in lose:
+        if f.get("Size", 0) >= 500e6:
+            ordner[f["Name"]] = f["Size"]
+    log(f"OneDrive: {total_n} Dateien, {gb(total_b)}")
 
+    log("Suche große Dateien (ab 50 MB) …")
+    gross = odrc.list("", modtime=True, filt={"MinSize": "50M"})
     jahr_grenze = dt.datetime.now().year - 5
     altlast = []
-    for f in files:
-        size = f.get("Size", 0)
+    for f in gross:
         jahr = int((f.get("ModTime") or "0000")[:4] or 0)
         ext = ext_of(f["Name"])
-        if size >= 50e6 and (ext in ALTLAST_EXT or ALTLAST_WORTE.search(f["Path"])
-                             or (jahr and jahr < jahr_grenze and ext in {"zip", "7z", "rar", "tar", "gz"})):
-            altlast.append((size, f["Path"], jahr))
+        if (ext in ALTLAST_EXT or ALTLAST_WORTE.search(f["Path"])
+                or (jahr and jahr < jahr_grenze and ext in {"zip", "7z", "rar", "tar", "gz"})):
+            altlast.append((f["Size"], f["Path"], jahr))
     altlast.sort(reverse=True)
 
     os.makedirs(BERICHT_DIR, exist_ok=True)
@@ -78,23 +92,19 @@ def analyse(rc):
         w.writerow(["ordner", "bytes", "gb"])
         for k, v in sorted(ordner.items()):
             w.writerow([k, v, round(v / 1e9, 2)])
-    with open(os.path.join(BERICHT_DIR, "onedrive_dateien.csv"), "w", newline="", encoding="utf-8") as fh:
+    with open(os.path.join(BERICHT_DIR, "onedrive_grosse_dateien.csv"), "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter=";")
         w.writerow(["pfad", "bytes", "geaendert"])
-        for f in sorted(files, key=lambda x: -x.get("Size", 0)):
+        for f in sorted(gross, key=lambda x: -x.get("Size", 0)):
             w.writerow([f["Path"], f.get("Size", 0), (f.get("ModTime") or "")[:10]])
 
-    log("=== Ordner (Ebene 1) ===")
-    for k, v in sorted(((k, v) for k, v in ordner.items() if "/" not in k), key=lambda x: -x[1]):
-        log(f"ORDNER1 {gb(v):>9} | {k}")
-    log("=== Ordner (Ebene 2/3, ab 500 MB) ===")
-    for k, v in sorted(((k, v) for k, v in ordner.items() if "/" in k and v >= 500e6), key=lambda x: -x[1]):
-        log(f"ORDNER2 {gb(v):>9} | {k}")
+    for k, v in sorted(ordner.items(), key=lambda x: -x[1]):
+        log(f"{'ORDNER2' if '/' in k else 'ORDNER1'} {gb(v):>9} | {k}")
     log(f"=== Altlasten-Kandidaten: {len(altlast)} Dateien, {gb(sum(a[0] for a in altlast))} ===")
     for size, path, jahr in altlast[:150]:
         log(f"ALTLAST {gb(size):>9} | {jahr} | {path}")
     notify("☁️ OneDrive-Analyse fertig",
-           f"{len(files)} Dateien, {gb(total)}\nAltlasten-Kandidaten: {len(altlast)} ({gb(sum(a[0] for a in altlast))})\n"
+           f"{total_n} Dateien, {gb(total_b)}\nAltlasten-Kandidaten: {len(altlast)} ({gb(sum(a[0] for a in altlast))})\n"
            f"Details: share/filen_webdav/onedrive_*.csv")
 
 
@@ -116,25 +126,25 @@ def warte_job(rc, jobid, titel):
 
 
 def pruefe(rc, src, dst):
-    """Jede Datei der Quelle muss im Ziel mit gleicher Größe existieren."""
-    ziel = {f["Path"]: f.get("Size") for f in RC().list(dst)}
-    fehlend = [f["Path"] for f in od_list(rc, src) if ziel.get(f["Path"]) != f.get("Size")]
-    return fehlend
+    """Jede Datei der Quelle muss im Ziel existieren und gleich groß sein (OneDrive und Filen haben keinen
+    gemeinsamen Hash, rclone vergleicht dann die Größe). Es kommen nur Abweichungen zurück."""
+    r = rc.call_job("operations/check", srcFs=f"{OD}{src}", dstFs=f"filen:{dst}", oneWay=True,
+                    missingOnDst=True, differ=True, error=True)
+    return list(r.get("missingOnDst") or []) + list(r.get("differ") or []) + list(r.get("error") or [])
 
 
 def kopiere_ordner(rc, path, ziel_root, probelauf):
     src = path.strip("/")
     dst = f"{ziel_root.strip('/')}/{src}"
-    dateien = od_list(rc, src)
-    groesse = sum(f.get("Size", 0) for f in dateien)
-    log(f"KOPIEREN {src}: {len(dateien)} Dateien, {gb(groesse)} -> /{dst}")
-    if probelauf or not dateien:
-        return {"pfad": src, "dateien": len(dateien), "bytes": groesse, "fehlend": None}
+    anzahl, bytes_ = groesse(rc, src)
+    log(f"KOPIEREN {src}: {anzahl} Dateien, {gb(bytes_)} -> /{dst}")
+    if probelauf or not anzahl:
+        return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": None}
     job = rc.call("sync/copy", srcFs=f"{OD}{src}", dstFs=f"filen:{dst}", _async=True)
     warte_job(rc, job["jobid"], f"Kopie {src}")
     fehlend = pruefe(rc, src, dst)
-    log(f"GEPRÜFT {src}: {len(dateien) - len(fehlend)}/{len(dateien)} ok" + (f", fehlt u. a. {fehlend[:3]}" if fehlend else ""))
-    return {"pfad": src, "dateien": len(dateien), "bytes": groesse, "fehlend": fehlend}
+    log(f"GEPRÜFT {src}: {anzahl - len(fehlend)}/{anzahl} ok" + (f", fehlt u. a. {fehlend[:3]}" if fehlend else ""))
+    return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": fehlend}
 
 
 def foto_abgleich(rc, path, foto_namen, probelauf):

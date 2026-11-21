@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.3.2
+
+- Speicher: Die OneDrive-Analyse hat alle 361.000 Dateien auf einmal eingelesen; rclone brauchte 1,4 GB und wurde
+  vom System beendet. Jetzt: Ordnergrößen über `operations/size`, große Dateien über einen Größenfilter (ab 50 MB),
+  Prüfung nach dem Kopieren über `operations/check` (liefert nur Abweichungen).
+- rclone-Fernsteuerung mit Speichergrenze (GOMEMLIMIT 400 MiB, `--use-mmap`) und automatischem Neustart.
+
 ## 0.3.1
 
 - Große Auflistungen (z. B. OneDrive mit mehreren 100 GB) laufen als Hintergrund-Auftrag von rclone;

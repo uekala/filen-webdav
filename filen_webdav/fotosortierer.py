@@ -69,12 +69,13 @@ class RC:
                 return st.get("output") or {}
             time.sleep(3)
 
-    def list(self, remote, recurse=True, dirs=False, modtime=False):
+    def list(self, remote, recurse=True, dirs=False, modtime=False, filt=None):
         # Ohne Hashes: Filen liefert sie nur mit einer Extra-Abfrage pro Datei (sehr langsam).
         opt = {"recurse": recurse, "noMimeType": True, "noModTime": not modtime}
         opt["dirsOnly" if dirs else "filesOnly"] = True
+        extra = {"_filter": filt} if filt else {}
         try:
-            res = self.call_job("operations/list", fs=self.fs, remote=remote, opt=opt)
+            res = self.call_job("operations/list", fs=self.fs, remote=remote, opt=opt, **extra)
         except FileNotFoundError:
             return []
         except urllib.error.HTTPError as e:
