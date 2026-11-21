@@ -48,7 +48,7 @@ Ordnet Fotos und Videos in Filen nach Aufnahmedatum:
 
 ```
 /Fotos/2025/2025-08/20250814_153012.jpg
-/Fotos/_Duplikate/…        exakte Duplikate (gleicher Inhalt) – nach Kontrolle selbst löschen
+/Fotos/_Duplikate/…        Duplikate (gleicher Name und gleiche Größe) – nach Kontrolle selbst löschen
 /Fotos/_Ohne-Datum/…       kein Datum gefunden
 /Fotos/_Google-Metadaten/… JSON-Dateien aus Google Takeout
 ```

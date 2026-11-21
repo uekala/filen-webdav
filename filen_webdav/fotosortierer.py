@@ -9,7 +9,7 @@ Datumsquelle (in dieser Reihenfolge):
   2. Google-Takeout-JSON (photoTakenTime)
   3. EXIF/Metadaten der Datei (exiftool)
 Ohne Datum: <ziel>/_Ohne-Datum/
-Exakte Duplikate (gleicher Hash, sonst gleiche Größe + gleicher Name): <ziel>/_Duplikate/
+Exakte Duplikate (gleicher Name + gleiche Größe in Byte): <ziel>/_Duplikate/
 Google-JSON-Dateien: nach der Sortierung nach <ziel>/_Google-Metadaten/
 """
 
@@ -54,10 +54,12 @@ class RC:
         with urllib.request.urlopen(req, timeout=600) as r:
             return json.loads(r.read() or b"{}")
 
-    def list(self, remote):
+    def list(self, remote, recurse=True, dirs=False):
+        # Ohne Hashes: Filen liefert sie nur mit einer Extra-Abfrage pro Datei (sehr langsam).
+        opt = {"recurse": recurse, "noMimeType": True, "noModTime": True}
+        opt["dirsOnly" if dirs else "filesOnly"] = True
         try:
-            res = self.call("operations/list", fs=self.fs, remote=remote,
-                            opt={"recurse": True, "showHash": True, "filesOnly": True, "noMimeType": True})
+            res = self.call("operations/list", fs=self.fs, remote=remote, opt=opt)
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return []
@@ -166,11 +168,9 @@ def is_year_dir(top):
 
 
 def dup_key(entry):
-    hashes = entry.get("Hashes") or {}
-    for h in sorted(hashes):
-        if hashes[h]:
-            return ("hash", h, hashes[h])
-    return ("size+name", entry.get("Size"), entry.get("Name", "").lower())
+    """Exaktes Duplikat = gleicher Name (ohne Takeout-Zähler „(1)“) und gleiche Größe in Byte."""
+    name = re.sub(r"\(\d+\)(?=\.[^.]+$)", "", entry.get("Name", "")).lower()
+    return (entry.get("Size"), name)
 
 
 def unique_target(target, taken):
@@ -191,7 +191,12 @@ def plan(rc, ziel, quellen, tmp):
     ziel = ziel.strip("/")
     # Bereits sortierter Bestand im Ziel (nur Jahresordner) als Duplikat- und Namensbasis
     taken, seen = set(), {}
-    for e in rc.list(ziel):
+    bestand = []
+    for d in rc.list(ziel, recurse=False, dirs=True):
+        if is_year_dir(d["Name"]) or d["Name"] in SPECIAL_DIRS:
+            for e in rc.list(f"{ziel}/{d['Name']}"):
+                bestand.append(dict(e, Path=f"{d['Name']}/{e['Path']}"))
+    for e in bestand:
         top = e["Path"].split("/", 1)[0]
         p = f"{ziel}/{e['Path']}"
         if is_year_dir(top) or top in ("_Ohne-Datum",):
@@ -214,6 +219,9 @@ def plan(rc, ziel, quellen, tmp):
         for d, files in sorted(by_dir.items()):
             jsons = [f"{q}/{f['Path']}" for f in files if f["Name"].lower().endswith(".json")]
             for e in sorted(files, key=lambda x: x["Path"]):
+                geprueft = sum(stats.values())
+                if geprueft and geprueft % 1000 == 0:
+                    log(f"… {geprueft} Dateien geprüft")
                 src = f"{q}/{e['Path']}"
                 name = e["Name"]
                 ext = ext_of(name)

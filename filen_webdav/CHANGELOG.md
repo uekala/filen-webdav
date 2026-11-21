@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.2.1
+
+- Fotosortierung deutlich schneller: keine Hash-Abfrage pro Datei mehr (Filen braucht dafür je Datei eine
+  Extra-Anfrage). Duplikat = gleicher Name (ohne „(1)“) und gleiche Größe in Byte.
+- Im Ziel werden nur noch die Jahres- und Sonderordner eingelesen, nicht die Quellordner ein zweites Mal.
+- Fortschritt im Protokoll alle 1000 Dateien.
+
 ## 0.2.0
 
 - Neu: Fotosortierung. Ordnet Fotos und Videos aus frei wählbaren Filen-Ordnern nach Aufnahmedatum in
