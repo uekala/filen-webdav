@@ -54,12 +54,29 @@ class RC:
         with urllib.request.urlopen(req, timeout=600) as r:
             return json.loads(r.read() or b"{}")
 
+    def call_job(self, method, **params):
+        """Lange Aufrufe als Hintergrund-Auftrag starten und auf das Ergebnis warten (kein Zeitlimit)."""
+        job = self.call(method, _async=True, **params)
+        jobid = job["jobid"]
+        while True:
+            st = self.call("job/status", jobid=jobid)
+            if st.get("finished"):
+                if not st.get("success"):
+                    err = st.get("error") or "unbekannter Fehler"
+                    if "directory not found" in err:
+                        raise FileNotFoundError(err)
+                    raise RuntimeError(err)
+                return st.get("output") or {}
+            time.sleep(3)
+
     def list(self, remote, recurse=True, dirs=False, modtime=False):
         # Ohne Hashes: Filen liefert sie nur mit einer Extra-Abfrage pro Datei (sehr langsam).
         opt = {"recurse": recurse, "noMimeType": True, "noModTime": not modtime}
         opt["dirsOnly" if dirs else "filesOnly"] = True
         try:
-            res = self.call("operations/list", fs=self.fs, remote=remote, opt=opt)
+            res = self.call_job("operations/list", fs=self.fs, remote=remote, opt=opt)
+        except FileNotFoundError:
+            return []
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 return []

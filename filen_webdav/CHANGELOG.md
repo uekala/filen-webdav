@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.3.1
+
+- Große Auflistungen (z. B. OneDrive mit mehreren 100 GB) laufen als Hintergrund-Auftrag von rclone;
+  vorher brach die OneDrive-Analyse nach 10 Minuten mit „timed out“ ab.
+
 ## 0.3.0
 
 - Neu: Umzug von OneDrive nach Filen über rclone.
