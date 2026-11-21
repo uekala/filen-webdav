@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.3.3
+
+- OneDrive-Umzug: Pfade, die an anderer Stelle gelistet sind (z. B. „Ohne Kopie löschen“ oder ein eigener
+  Foto-Abgleich), werden beim Kopieren des übergeordneten Ordners automatisch ausgelassen.
+- Eintrag `.` in „Ordner/Dateien kopieren“ übernimmt die losen Dateien im Hauptverzeichnis von OneDrive.
+- Gelöscht wird nur, wenn **alle** Kopien und Abgleiche fehlerfrei waren; übergeordnete Ordner werden in einem Schritt
+  gelöscht, lose Dateien im Hauptverzeichnis zuletzt.
+- Summe der Übertragung und freier Platz in Filen im Protokoll.
+
 ## 0.3.2
 
 - Speicher: Die OneDrive-Analyse hat alle 361.000 Dateien auf einmal eingelesen; rclone brauchte 1,4 GB und wurde

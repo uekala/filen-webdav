@@ -47,9 +47,11 @@ def od_list(rc, path, modtime=False):
 
 
 # ------------------------------------------------------------------ Analyse
-def groesse(rc, path):
+def groesse(rc, path, filt=None):
     """Anzahl und Bytes eines Ordners, ohne die Dateiliste in den Speicher zu holen."""
-    r = rc.call_job("operations/size", fs=f"{OD}{path.strip('/')}")
+    fs = OD if path == ROOT else f"{OD}{path.strip('/')}"
+    extra = {"_filter": filt} if filt else {}
+    r = rc.call_job("operations/size", fs=fs, **extra)
     return r.get("count", 0), r.get("bytes", 0)
 
 
@@ -109,6 +111,38 @@ def analyse(rc):
 
 
 # ------------------------------------------------------------------ Umzug
+ROOT = "."  # Eintrag für die losen Dateien im Hauptverzeichnis von OneDrive
+
+
+def glob_escape(text):
+    return re.sub(r"([\\\[\]{}*?])", r"\\\1", text)
+
+
+def ausschluesse(eintrag, alle_pfade):
+    """rclone-Filter: alle anderen gelisteten Pfade unterhalb von `eintrag` auslassen."""
+    e = "" if eintrag == ROOT else eintrag.strip("/")
+    regeln = []
+    for p in alle_pfade:
+        p = p.strip("/")
+        if p == e or p == ROOT:
+            continue
+        if e == "":
+            rel = p
+        elif p.startswith(e + "/"):
+            rel = p[len(e) + 1:]
+        else:
+            continue
+        rel = glob_escape(rel)
+        regeln += [f"/{rel}", f"/{rel}/**"]
+    filt = {"ExcludeRule": regeln} if regeln else {}
+    if eintrag == ROOT:
+        filt["MaxDepth"] = 1
+    return filt
+
+
+def fs_von(eintrag):
+    return OD if eintrag == ROOT else f"{OD}{eintrag.strip('/')}"
+
 def warte_job(rc, jobid, titel):
     letzte = 0
     while True:
@@ -125,31 +159,36 @@ def warte_job(rc, jobid, titel):
         time.sleep(20)
 
 
-def pruefe(rc, src, dst):
+def pruefe(rc, src, dst, filt=None):
     """Jede Datei der Quelle muss im Ziel existieren und gleich groß sein (OneDrive und Filen haben keinen
     gemeinsamen Hash, rclone vergleicht dann die Größe). Es kommen nur Abweichungen zurück."""
-    r = rc.call_job("operations/check", srcFs=f"{OD}{src}", dstFs=f"filen:{dst}", oneWay=True,
-                    missingOnDst=True, differ=True, error=True)
+    extra = {"_filter": filt} if filt else {}
+    r = rc.call_job("operations/check", srcFs=fs_von(src), dstFs=f"filen:{dst}", oneWay=True,
+                    missingOnDst=True, differ=True, error=True, **extra)
     return list(r.get("missingOnDst") or []) + list(r.get("differ") or []) + list(r.get("error") or [])
 
 
-def kopiere_ordner(rc, path, ziel_root, probelauf):
-    src = path.strip("/")
-    dst = f"{ziel_root.strip('/')}/{src}"
-    anzahl, bytes_ = groesse(rc, src)
-    log(f"KOPIEREN {src}: {anzahl} Dateien, {gb(bytes_)} -> /{dst}")
+def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
+    src = ROOT if path.strip() in (ROOT, "/") else path.strip("/")
+    dst = ziel_root.strip("/") if src == ROOT else f"{ziel_root.strip('/')}/{src}"
+    filt = ausschluesse(src, alle_pfade)
+    anzahl, bytes_ = groesse(rc, src, filt)
+    aus = len(filt.get("ExcludeRule", [])) // 2
+    log(f"KOPIEREN {src}: {anzahl} Dateien, {gb(bytes_)} -> /{dst}" + (f" (ohne {aus} gelistete Unterpfade)" if aus else ""))
     if probelauf or not anzahl:
-        return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": None}
-    job = rc.call("sync/copy", srcFs=f"{OD}{src}", dstFs=f"filen:{dst}", _async=True)
+        return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": None if probelauf else []}
+    extra = {"_filter": filt} if filt else {}
+    job = rc.call("sync/copy", srcFs=fs_von(src), dstFs=f"filen:{dst}", _async=True, **extra)
     warte_job(rc, job["jobid"], f"Kopie {src}")
-    fehlend = pruefe(rc, src, dst)
+    fehlend = pruefe(rc, src, dst, filt)
     log(f"GEPRÜFT {src}: {anzahl - len(fehlend)}/{anzahl} ok" + (f", fehlt u. a. {fehlend[:3]}" if fehlend else ""))
     return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": fehlend}
 
 
-def foto_abgleich(rc, path, foto_namen, probelauf):
+def foto_abgleich(rc, path, foto_namen, probelauf, alle_pfade):
     src = path.strip("/")
-    alle = od_list(rc, src)
+    filt = ausschluesse(src, alle_pfade)
+    alle = RC(fs=OD).list(src, filt=filt or None)
     dateien = [f for f in alle if ext_of(f["Name"]) in MEDIA_EXT]
     # Andere Dateien (außer Google-JSON/HTML) werden immer mitgenommen, damit beim Löschen nichts verloren geht
     sonstige = [f for f in alle if ext_of(f["Name"]) not in MEDIA_EXT | {"json", "html"}]
@@ -160,7 +199,8 @@ def foto_abgleich(rc, path, foto_namen, probelauf):
     for f in fehlen[:20]:
         log(f"FEHLT {f['Path']}")
     if probelauf:
-        return {"pfad": src, "dateien": len(dateien), "fehlen": len(fehlen), "fehlend": None}
+        return {"pfad": src, "dateien": len(dateien), "fehlen": len(fehlen), "fehlend": None,
+                "bytes": sum(f.get("Size", 0) for f in fehlen)}
     fehler = []
     for f in fehlen:
         dst = f"Fotos/_Aus-OneDrive/{src}/{f['Path']}"
@@ -170,11 +210,17 @@ def foto_abgleich(rc, path, foto_namen, probelauf):
         except Exception as e:
             fehler.append(f["Path"])
             log(f"FEHLER {src}/{f['Path']}: {e}")
-    return {"pfad": src, "dateien": len(dateien), "fehlen": len(fehlen), "fehlend": fehler}
+    return {"pfad": src, "dateien": len(dateien), "fehlen": len(fehlen), "fehlend": fehler,
+            "bytes": sum(f.get("Size", 0) for f in fehlen)}
 
 
 def loesche(rc, path):
     p = path.strip("/")
+    if p == ROOT:
+        # nur die losen Dateien im Hauptverzeichnis (keine Ordner)
+        rc.call_job("operations/delete", fs=OD, _filter={"MaxDepth": 1})
+        log("GELÖSCHT (OneDrive-Papierkorb): lose Dateien im Hauptverzeichnis")
+        return
     if not p:
         raise RuntimeError("Wurzel von OneDrive wird nie gelöscht")
     try:
@@ -189,36 +235,39 @@ def umzug(rc, opt):
     loeschen = bool(opt.get("onedrive_loeschen", False)) and not probelauf
     ziel_root = opt.get("onedrive_ziel", "/OneDrive")
     ergebnis = []
-
+    kopieren = [p for p in opt.get("onedrive_kopieren", []) if p.strip()]
+    nur_loeschen = [p for p in opt.get("onedrive_nur_loeschen", []) if p.strip()]
     foto_quellen = [p for p in opt.get("onedrive_fotos_abgleich", []) if p.strip()]
+    alle_pfade = kopieren + nur_loeschen + foto_quellen
     if foto_quellen:
         log("Lese vorhandene Fotos in Filen /Fotos …")
         foto_namen = {norm(f["Name"]) for f in RC().list("Fotos")}
         log(f"In Filen /Fotos: {len(foto_namen)} verschiedene Dateinamen")
         for p in foto_quellen:
-            r = foto_abgleich(rc, p, foto_namen, probelauf)
+            r = foto_abgleich(rc, p, foto_namen, probelauf, alle_pfade)
             ergebnis.append(("fotoabgleich", r))
 
-    for p in [p for p in opt.get("onedrive_kopieren", []) if p.strip()]:
+    for p in kopieren:
         try:
-            ergebnis.append(("kopie", kopiere_ordner(rc, p, ziel_root, probelauf)))
+            ergebnis.append(("kopie", kopiere_ordner(rc, p, ziel_root, probelauf, alle_pfade)))
         except Exception as e:
             log(f"FEHLER bei {p}: {e}")
             ergebnis.append(("kopie", {"pfad": p, "fehlend": ["Abbruch"]}))
 
     geloescht = []
-    if loeschen:
-        for art, r in ergebnis:
-            if r.get("fehlend") == []:
-                loesche(rc, r["pfad"])
-                geloescht.append(r["pfad"])
-            else:
-                log(f"NICHT gelöscht (Prüfung nicht sauber): {r['pfad']}")
-        alles_ok = all(r.get("fehlend") == [] for _, r in ergebnis)
-        for p in [p for p in opt.get("onedrive_nur_loeschen", []) if p.strip()]:
-            if not alles_ok:
-                log(f"NICHT gelöscht: {p} – erst wenn alle Kopien fehlerfrei sind")
-                continue
+    alles_ok = all(r.get("fehlend") == [] for _, r in ergebnis)
+    if loeschen and not alles_ok:
+        for _, r in ergebnis:
+            if r.get("fehlend") != []:
+                log(f"NICHT sauber: {r['pfad']} – deshalb wird in OneDrive NICHTS gelöscht")
+    elif loeschen:
+        ziele = [r["pfad"] for _, r in ergebnis] + nur_loeschen
+        ziele = [p.strip("/") for p in ziele]
+        # Unterpfade weglassen, wenn ein übergeordneter Ordner ohnehin gelöscht wird
+        minimal = [p for p in ziele if p == ROOT or not any(q != ROOT and q != p and p.startswith(q + "/") for q in ziele)]
+        # Lose Dateien im Hauptverzeichnis zuletzt (sie enthalten ggf. auch einzeln gelistete Dateien)
+        reihenfolge = [p for p in dict.fromkeys(minimal) if p != ROOT] + ([ROOT] if ROOT in minimal else [])
+        for p in reihenfolge:
             try:
                 loesche(rc, p)
                 geloescht.append(p)
@@ -227,6 +276,15 @@ def umzug(rc, opt):
     elif not probelauf:
         log("Löschen ist aus (onedrive_loeschen=false) – OneDrive bleibt unverändert.")
 
+    gesamt = sum(r.get("bytes", 0) for _, r in ergebnis)
+    log(f"SUMME nach Filen: {gb(gesamt)}")
+    try:
+        about = RC().call_job("operations/about", fs="filen:")
+        if about.get("free") is not None:
+            log(f"Filen frei: {gb(about['free'])} (belegt {gb(about.get('used', 0))} von {gb(about.get('total', 0))})")
+    except Exception:
+        pass
+
     zeilen = []
     for art, r in ergebnis:
         if art == "kopie":
@@ -234,11 +292,11 @@ def umzug(rc, opt):
             zeilen.append(f"📁 {r['pfad']}: {r.get('dateien', '?')} Dateien, {gb(r.get('bytes', 0))} – {status}")
         else:
             status = "geplant" if r.get("fehlend") is None else ("ok" if not r["fehlend"] else f"{len(r['fehlend'])} Fehler")
-            zeilen.append(f"📸 {r['pfad']}: {r['fehlen']} von {r['dateien']} fehlten in Filen – {status}")
-    if probelauf:
-        nur = [p for p in opt.get("onedrive_nur_loeschen", []) if p.strip()]
-        if nur:
-            zeilen.append("🗑️ würde gelöscht (ohne Kopie): " + ", ".join(nur))
+            zeilen.append(f"📸 {r['pfad']}: {r['fehlen']} Dateien ({gb(r.get('bytes', 0))}) fehlten in Filen, "
+                          f"{r['dateien']} Fotos/Videos geprüft – {status}")
+    zeilen.append(f"Σ nach Filen: {gb(gesamt)}")
+    if probelauf and nur_loeschen:
+        zeilen.append(f"🗑️ würde gelöscht (ohne Kopie): {len(nur_loeschen)} Pfade")
     if geloescht:
         zeilen.append("🗑️ in OneDrive gelöscht (Papierkorb): " + ", ".join(geloescht))
     text = ("Probelauf – nichts kopiert/gelöscht\n" if probelauf else "") + "\n".join(zeilen)
