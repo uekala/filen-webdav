@@ -24,6 +24,7 @@ DAV_PASS=$(opt webdav_password)
 CACHE_MODE=$(opt cache_mode)
 LOG_LEVEL=$(opt log_level)
 FOTO_SORTIERUNG=$(jq -r '.foto_sortierung // false' "$OPTIONS")
+ONEDRIVE_MODUS=$(jq -r '.onedrive_modus // "aus"' "$OPTIONS")
 
 [ -n "$EMAIL" ] || fail "Option 'email' fehlt."
 [ -n "$PASSWORD" ] || fail "Option 'password' fehlt."
@@ -57,10 +58,21 @@ rclone mkdir "filen:$ROOT" --log-level "$LOG_LEVEL" \
 
 mkdir -p /data/cache
 
-if [ "$FOTO_SORTIERUNG" = "true" ]; then
-    echo "[filen-webdav] Fotosortierung aktiv – starte rclone-Fernsteuerung (nur lokal) und Sortierer"
+if [ "$ONEDRIVE_MODUS" != "aus" ]; then
+    python3 /onedrive.py --config || ONEDRIVE_MODUS=aus
+fi
+
+if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ]; then
+    echo "[filen-webdav] Starte rclone-Fernsteuerung (nur lokal)"
     rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --log-level "$LOG_LEVEL" &
+fi
+if [ "$FOTO_SORTIERUNG" = "true" ]; then
+    echo "[filen-webdav] Fotosortierung aktiv"
     python3 /fotosortierer.py --dienst &
+fi
+if [ "$ONEDRIVE_MODUS" != "aus" ]; then
+    echo "[filen-webdav] OneDrive-Modus: $ONEDRIVE_MODUS"
+    python3 /onedrive.py &
 fi
 
 echo "[filen-webdav] WebDAV-Server startet auf Port 8080, Ordner '$ROOT', Zwischenspeicher: $CACHE_MODE"

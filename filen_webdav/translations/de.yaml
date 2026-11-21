@@ -41,5 +41,32 @@ configuration:
   foto_beim_start:
     name: Beim Start sortieren
     description: Zusätzlich direkt nach dem Start der App laufen (praktisch nach Änderung der Einstellungen).
+  onedrive_modus:
+    name: OneDrive-Modus
+    description: aus | analyse (nur einlesen, Bericht ins Protokoll und nach share/filen_webdav) | umzug (kopieren, prüfen, ggf. löschen). Läuft einmal beim Start der App.
+  onedrive_token:
+    name: OneDrive-Token
+    description: Ausgabe von „rclone authorize onedrive“ am PC (die JSON-Zeile in geschweiften Klammern).
+  onedrive_drive_id:
+    name: OneDrive-Laufwerks-ID
+    description: Steht in der OneDrive-Web-Adresse hinter /personal/.
+  onedrive_probelauf:
+    name: 'OneDrive: nur Probelauf'
+    description: 'An: Umzug wird nur geplant und ins Protokoll geschrieben.'
+  onedrive_ziel:
+    name: Zielordner in Filen
+    description: Kopierte OneDrive-Ordner landen unter <Ziel>/<Pfad>.
+  onedrive_kopieren:
+    name: Ordner/Dateien kopieren
+    description: OneDrive-Pfade, die vollständig nach Filen kopiert und Datei für Datei geprüft werden.
+  onedrive_fotos_abgleich:
+    name: Fotos abgleichen
+    description: 'OneDrive-Ordner mit Fotos: nur was in Filen /Fotos noch fehlt, wird nach /Fotos/_Aus-OneDrive kopiert.'
+  onedrive_loeschen:
+    name: Nach Prüfung in OneDrive löschen
+    description: Nur fehlerfrei geprüfte Ordner werden gelöscht (OneDrive-Papierkorb, wiederherstellbar).
+  onedrive_nur_loeschen:
+    name: Ohne Kopie löschen
+    description: OneDrive-Pfade, die nicht umziehen, sondern weg sollen. Nur wenn alle Kopien fehlerfrei waren und „Nach Prüfung löschen“ an ist.
 network:
   8080/tcp: Nur nötig für Zugriff von anderen Geräten

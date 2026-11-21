@@ -1,5 +1,15 @@
 # Änderungen
 
+## 0.3.0
+
+- Neu: Umzug von OneDrive nach Filen über rclone.
+  - `analyse`: liest OneDrive ein, schreibt Ordnergrößen, größte Dateien und Altlasten-Kandidaten (ISOs, VM-Images,
+    Installer, alte Sicherungen) ins Protokoll und als CSV nach `share/filen_webdav`. Kopiert und löscht nichts.
+  - `umzug`: kopiert gelistete Ordner nach `<Ziel>/<Pfad>` und prüft jede Datei (Name + Größe). Foto-Ordner werden
+    gegen `/Fotos` abgeglichen; nur Fehlendes kommt nach `/Fotos/_Aus-OneDrive`.
+  - Löschen in OneDrive nur mit `onedrive_loeschen`, nur nach fehlerfreier Prüfung und nur in den OneDrive-Papierkorb.
+- Probelauf ist Standard.
+
 ## 0.2.2
 
 - Fotosortierung: Pfade aus der rclone-Fernsteuerung wurden doppelt zusammengesetzt (Quellordner zweimal);

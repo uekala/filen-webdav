@@ -41,5 +41,32 @@ configuration:
   foto_beim_start:
     name: Sort on start
     description: Also run right after the app starts.
+  onedrive_modus:
+    name: OneDrive mode
+    description: off | analyse | umzug (migrate). Runs once on start.
+  onedrive_token:
+    name: OneDrive token
+    description: Output of "rclone authorize onedrive".
+  onedrive_drive_id:
+    name: OneDrive drive ID
+    description: Shown in the OneDrive web URL after /personal/.
+  onedrive_probelauf:
+    name: 'OneDrive: dry run'
+    description: 'On: only plan.'
+  onedrive_ziel:
+    name: Target folder in Filen
+    description: Copied OneDrive folders go to <target>/<path>.
+  onedrive_kopieren:
+    name: Copy folders/files
+    description: OneDrive paths to copy completely and verify.
+  onedrive_fotos_abgleich:
+    name: Reconcile photos
+    description: Only photos missing in Filen /Fotos are copied to /Fotos/_Aus-OneDrive.
+  onedrive_loeschen:
+    name: Delete in OneDrive after verification
+    description: Only verified folders are deleted (OneDrive recycle bin).
+  onedrive_nur_loeschen:
+    name: Delete without copy
+    description: OneDrive paths to delete. Only if all copies succeeded and deletion is on.
 network:
   8080/tcp: Only needed for access from other devices

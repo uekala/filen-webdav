@@ -54,9 +54,9 @@ class RC:
         with urllib.request.urlopen(req, timeout=600) as r:
             return json.loads(r.read() or b"{}")
 
-    def list(self, remote, recurse=True, dirs=False):
+    def list(self, remote, recurse=True, dirs=False, modtime=False):
         # Ohne Hashes: Filen liefert sie nur mit einer Extra-Abfrage pro Datei (sehr langsam).
-        opt = {"recurse": recurse, "noMimeType": True, "noModTime": True}
+        opt = {"recurse": recurse, "noMimeType": True, "noModTime": not modtime}
         opt["dirsOnly" if dirs else "filesOnly"] = True
         try:
             res = self.call("operations/list", fs=self.fs, remote=remote, opt=opt)

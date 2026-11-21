@@ -64,6 +64,17 @@ Datum: zuerst aus dem Dateinamen, dann aus der Google-JSON, zuletzt aus den EXIF
 Kamera-Upload vom Handy: Die Filen-App kann neue Uploads selbst nach Datum ordnen. Den Kamera-Upload-Ordner nur
 als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erneut hochlädt.
 
+## 5. Umzug von OneDrive (optional)
+
+1. Am PC rclone herunterladen (rclone.org/downloads, Windows-ZIP), entpacken, in der Eingabeaufforderung im Ordner:
+   `rclone authorize "onedrive"` – im Browser mit dem Microsoft-Konto anmelden.
+2. Die ausgegebene Zeile `{"access_token":…}` komplett in **OneDrive-Token** kopieren,
+   **OneDrive-Laufwerks-ID** aus der Web-Adresse (`onedrive.live.com/personal/<ID>/…`) eintragen.
+3. **OneDrive-Modus** `analyse`, App neu starten. Ergebnis im Protokoll (Zeilen `ORDNER`, `ALTLAST`) und in
+   `share/filen_webdav/onedrive_*.csv`.
+4. Ordner in **Ordner/Dateien kopieren** bzw. **Fotos abgleichen** eintragen, Modus `umzug`, Probelauf an, neu starten.
+5. Passt der Plan: Probelauf aus. Erst danach, wenn alles „ok“ ist, **Nach Prüfung löschen** einschalten.
+
 ## Hinweise
 
 - Backups mit Verschlüsselung in Home Assistant lassen; Filen verschlüsselt zusätzlich Ende-zu-Ende.

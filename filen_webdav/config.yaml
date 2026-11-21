@@ -1,5 +1,5 @@
 name: Filen WebDAV
-version: "0.2.2"
+version: "0.3.0"
 slug: filen_webdav
 description: WebDAV-Zugang zu Filen.io für HA-Backups, dazu ein Sortierer, der Fotos in Filen nach Aufnahmedatum ordnet
 url: https://github.com/uekala/filen-webdav
@@ -41,6 +41,15 @@ options:
   foto_ziel: /Fotos
   foto_uhrzeit: "03:30"
   foto_beim_start: true
+  onedrive_modus: aus
+  onedrive_token: ""
+  onedrive_drive_id: ""
+  onedrive_probelauf: true
+  onedrive_ziel: /OneDrive
+  onedrive_kopieren: []
+  onedrive_fotos_abgleich: []
+  onedrive_loeschen: false
+  onedrive_nur_loeschen: []
 schema:
   email: email
   password: password
@@ -57,3 +66,15 @@ schema:
   foto_ziel: str
   foto_uhrzeit: match(^([01]\d|2[0-3]):[0-5]\d$)
   foto_beim_start: bool
+  onedrive_modus: list(aus|analyse|umzug)
+  onedrive_token: password?
+  onedrive_drive_id: str?
+  onedrive_probelauf: bool
+  onedrive_ziel: str
+  onedrive_kopieren:
+    - str?
+  onedrive_fotos_abgleich:
+    - str?
+  onedrive_loeschen: bool
+  onedrive_nur_loeschen:
+    - str?
