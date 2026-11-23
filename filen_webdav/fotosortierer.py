@@ -299,19 +299,26 @@ def plan(rc, ziel, quellen, tmp):
 
 
 # ---------------------------------------------------------------- Ablauf
-def notify(title, message):
+def notify(title, message, nid="filen_fotosortierer", versuche=6):
+    """Benachrichtigung in HA. Läuft HA gerade neu (502), wird es bis zu 5 min lang erneut versucht."""
     token = os.environ.get("SUPERVISOR_TOKEN")
     if not token:
         return
-    req = urllib.request.Request(
-        "http://supervisor/core/api/services/persistent_notification/create",
-        data=json.dumps({"title": title, "message": message, "notification_id": "filen_fotosortierer"}).encode(),
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-    )
-    try:
-        urllib.request.urlopen(req, timeout=15).read()
-    except Exception as e:
-        log(f"Benachrichtigung fehlgeschlagen: {e}")
+    data = json.dumps({"title": title, "message": message, "notification_id": nid}).encode()
+    for versuch in range(1, versuche + 1):
+        req = urllib.request.Request(
+            "http://supervisor/core/api/services/persistent_notification/create",
+            data=data,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15).read()
+            return
+        except Exception as e:
+            if versuch == versuche:
+                log(f"Benachrichtigung fehlgeschlagen: {e}")
+                return
+            time.sleep(60)
 
 
 def run(rc, ziel, quellen, probelauf, bericht_dir):

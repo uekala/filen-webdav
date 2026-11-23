@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.3.7
+
+- Die rclone-Fernsteuerung loggt nur noch Hinweise und Fehler (bei Protokollstufe DEBUG weiterhin alles).
+  Große Kopien verdrängen die Ergebnisse von Fotosortierung und OneDrive-Umzug nicht mehr aus dem Log.
+- Fotosortierung und OneDrive-Umzug haben getrennte Benachrichtigungen und überschreiben sich nicht mehr.
+- Ist Home Assistant beim Senden einer Benachrichtigung gerade nicht erreichbar, wird es bis zu 5 Minuten lang
+  erneut versucht.
+
 ## 0.3.6
 
 - Persönlicher Tresor von OneDrive wird ausgelassen (gesperrt, rclone meldete „ObjectHandle is Invalid“).

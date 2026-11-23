@@ -122,7 +122,7 @@ def analyse(rc):
         log(f"ALTLAST {gb(size):>9} | {jahr} | {path}")
     notify("☁️ OneDrive-Analyse fertig",
            f"{total_n} Dateien, {gb(total_b)}\nAltlasten-Kandidaten: {len(altlast)} ({gb(sum(a[0] for a in altlast))})\n"
-           f"Details: share/filen_webdav/onedrive_*.csv")
+           f"Details: share/filen_webdav/onedrive_*.csv", nid="filen_onedrive")
 
 
 # ------------------------------------------------------------------ Umzug
@@ -325,7 +325,7 @@ def umzug(rc, opt):
         zeilen.append("🗑️ in OneDrive gelöscht (Papierkorb): " + ", ".join(geloescht))
     text = ("Probelauf – nichts kopiert/gelöscht\n" if probelauf else "") + "\n".join(zeilen)
     log("ERGEBNIS | " + text.replace("\n", " | "))
-    notify("☁️ OneDrive → Filen", text or "nichts zu tun")
+    notify("☁️ OneDrive → Filen", text or "nichts zu tun", nid="filen_onedrive")
 
 
 def schreibe_config(opt):
@@ -377,7 +377,7 @@ def main():
             umzug(rc, opt)
     except Exception as e:
         log(f"FEHLER: {e}")
-        notify("☁️ OneDrive → Filen fehlgeschlagen", str(e))
+        notify("☁️ OneDrive → Filen fehlgeschlagen", str(e), nid="filen_onedrive")
 
 
 if __name__ == "__main__":
