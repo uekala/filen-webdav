@@ -1,5 +1,5 @@
 name: Filen WebDAV
-version: "0.3.7"
+version: "0.3.8"
 slug: filen_webdav
 description: WebDAV-Zugang zu Filen.io für HA-Backups, dazu ein Sortierer, der Fotos in Filen nach Aufnahmedatum ordnet
 url: https://github.com/uekala/filen-webdav

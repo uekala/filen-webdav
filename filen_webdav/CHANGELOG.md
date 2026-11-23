@@ -1,5 +1,12 @@
 # Änderungen
 
+## 0.3.8
+
+- OneDrive-Umzug: Meldet die Prüfung eines Ordners Abweichungen, wird bis zu zweimal erneut kopiert und geprüft.
+  Filen bricht gelegentlich Verbindungen ab; dann galten Dateien als fehlend, die längst da waren, und das Löschen
+  unterblieb. Gezählt wird nur die letzte Prüfung.
+- Foto-Abgleich: Scheitert das Kopieren eines Fotos, wird es nach 30 s bis zu zweimal erneut versucht.
+
 ## 0.3.7
 
 - Die rclone-Fernsteuerung loggt nur noch Hinweise und Fehler (bei Protokollstufe DEBUG weiterhin alles).

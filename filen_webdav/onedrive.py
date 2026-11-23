@@ -197,9 +197,26 @@ def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
     if probelauf or not anzahl:
         return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": None if probelauf else []}
     extra = {"_filter": filt} if filt else {}
-    job = rc.call("sync/copy", srcFs=fs_von(src), dstFs=f"filen:{dst}", _async=True, **extra)
-    warte_job(rc, job["jobid"], f"Kopie {src}")
-    fehlend = pruefe(rc, src, dst, filt)
+    # Filen bricht gelegentlich Verbindungen ab (HTTP/2 GOAWAY, 500). Dann meldet die Prüfung Dateien als
+    # fehlend, die längst da sind. Deshalb: kopieren, prüfen und bei Abweichungen bis zu zweimal wiederholen.
+    # Gezählt wird nur das Ergebnis der letzten Prüfung.
+    fehlend = None
+    for versuch in range(3):
+        if versuch:
+            log(f"NACHPRÜFUNG {src}: {len(fehlend)} Abweichungen – Versuch {versuch + 1} von 3 in 60 s")
+            time.sleep(60)
+        try:
+            job = rc.call("sync/copy", srcFs=fs_von(src), dstFs=f"filen:{dst}", _async=True, **extra)
+            warte_job(rc, job["jobid"], f"Kopie {src}")
+        except Exception as e:
+            log(f"Kopie {src} mit Fehlern beendet: {e} – die Prüfung entscheidet")
+        try:
+            fehlend = pruefe(rc, src, dst, filt)
+        except Exception as e:
+            log(f"Prüfung {src} fehlgeschlagen: {e}")
+            fehlend = ["Prüfung fehlgeschlagen"]
+        if not fehlend:
+            break
     log(f"GEPRÜFT {src}: {anzahl - len(fehlend)}/{anzahl} ok" + (f", fehlt u. a. {fehlend[:3]}" if fehlend else ""))
     return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": fehlend}
 
@@ -226,12 +243,17 @@ def foto_abgleich(rc, path, foto_namen, probelauf, alle_pfade):
     fehler = []
     for f in fehlen:
         dst = f"Fotos/_Aus-OneDrive/{src}/{f['Path']}"
-        try:
-            rc.call("operations/copyfile", srcFs=OD, srcRemote=f"{src}/{f['Path']}", dstFs="filen:", dstRemote=dst)
-            foto_namen.setdefault(norm(f["Name"]), set()).add(f.get("Size"))
-        except Exception as e:
-            fehler.append(f["Path"])
-            log(f"FEHLER {src}/{f['Path']}: {e}")
+        for versuch in range(3):
+            try:
+                rc.call("operations/copyfile", srcFs=OD, srcRemote=f"{src}/{f['Path']}", dstFs="filen:", dstRemote=dst)
+                foto_namen.setdefault(norm(f["Name"]), set()).add(f.get("Size"))
+                break
+            except Exception as e:
+                if versuch == 2:
+                    fehler.append(f["Path"])
+                    log(f"FEHLER {src}/{f['Path']}: {e}")
+                else:
+                    time.sleep(30)
     return {"pfad": src, "dateien": len(dateien), "fehlen": len(fehlen), "fehlend": fehler,
             "bytes": sum(f.get("Size", 0) for f in fehlen)}
 
