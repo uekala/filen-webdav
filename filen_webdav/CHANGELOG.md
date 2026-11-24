@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.3.9
+
+- OneDrive-Umzug prüft jetzt positiv: Eine Datei gilt erst als vorhanden, wenn rclone sie im Ziel gefunden und
+  die Größe verglichen hat. Grundlage ist eine eigene, vollständige Liste der Quelldateien. Bisher konnten
+  Dateien in einem Quellverzeichnis, das rclone nicht lesen konnte, unbemerkt durchrutschen.
+- Bis zu drei Durchgänge aus Kopie und Prüfung; was ein Durchgang bestätigt hat, bleibt bestätigt. Filen schließt
+  die Verbindung nach 2000 Anfragen (HTTP/2 GOAWAY), dadurch scheiterte bisher fast jede Prüfung großer Ordner.
+
 ## 0.3.8
 
 - OneDrive-Umzug: Meldet die Prüfung eines Ordners Abweichungen, wird bis zu zweimal erneut kopiert und geprüft.

@@ -20,6 +20,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fotosortierer import MEDIA_EXT, RC, ext_of, notify  # noqa: E402
@@ -179,12 +180,30 @@ def warte_job(rc, jobid, titel):
 
 
 def pruefe(rc, src, dst, filt=None):
-    """Jede Datei der Quelle muss im Ziel existieren und gleich groß sein (OneDrive und Filen haben keinen
-    gemeinsamen Hash, rclone vergleicht dann die Größe). Es kommen nur Abweichungen zurück."""
+    """Liefert die Dateien, die im Ziel vorhanden und gleich groß sind (OneDrive und Filen haben keinen
+    gemeinsamen Hash, rclone vergleicht dann die Größe). Nur positiv bestätigte Dateien zählen: Kann rclone
+    ein Verzeichnis nicht lesen, tauchen dessen Dateien hier nicht auf und gelten weiter als offen."""
     extra = {"_filter": filt} if filt else {}
     r = rc.call_job("operations/check", srcFs=fs_von(src), dstFs=f"filen:{dst}", oneWay=True,
-                    missingOnDst=True, differ=True, error=True, **extra)
-    return list(r.get("missingOnDst") or []) + list(r.get("differ") or []) + list(r.get("error") or [])
+                    match=True, missingOnDst=True, differ=True, error=True, **extra)
+    return {unicodedata.normalize("NFC", x) for x in (r.get("match") or [])}
+
+
+def quellliste(src, filt, anzahl):
+    """Unabhängige Liste aller Quelldateien (relativ zu `src`). Muss mindestens so viele Dateien enthalten
+    wie die Größenabfrage gezählt hat, sonst gilt sie als unvollständig."""
+    for versuch in range(3):
+        if versuch:
+            time.sleep(60)
+        try:
+            liste = {unicodedata.normalize("NFC", e["Path"]) for e in RC(fs=fs_von(src)).list("", filt=filt or None)}
+        except Exception as e:
+            log(f"Quellliste {src} nicht lesbar: {e}")
+            continue
+        if len(liste) >= anzahl:
+            return liste
+        log(f"Quellliste {src} unvollständig: {len(liste)} von {anzahl} Dateien")
+    return None
 
 
 def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
@@ -197,13 +216,18 @@ def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
     if probelauf or not anzahl:
         return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": None if probelauf else []}
     extra = {"_filter": filt} if filt else {}
-    # Filen bricht gelegentlich Verbindungen ab (HTTP/2 GOAWAY, 500). Dann meldet die Prüfung Dateien als
-    # fehlend, die längst da sind. Deshalb: kopieren, prüfen und bei Abweichungen bis zu zweimal wiederholen.
-    # Gezählt wird nur das Ergebnis der letzten Prüfung.
-    fehlend = None
+    quelle = quellliste(src, filt, anzahl)
+    if quelle is None:
+        log(f"GEPRÜFT {src}: Quellliste nicht vollständig lesbar – gilt als nicht geprüft")
+        return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": ["Quellliste nicht lesbar"]}
+    # Filen schließt die Verbindung regelmäßig (HTTP/2 GOAWAY nach 2000 Anfragen). Ein Verzeichnis, das dabei
+    # nicht gelesen werden konnte, ist in diesem Durchgang unbestätigt. Bis zu drei Durchgänge (kopieren +
+    # prüfen); eine Datei gilt als vorhanden, sobald ein Durchgang sie bestätigt hat.
+    bestaetigt = set()
+    fehlend = sorted(quelle)
     for versuch in range(3):
         if versuch:
-            log(f"NACHPRÜFUNG {src}: {len(fehlend)} Abweichungen – Versuch {versuch + 1} von 3 in 60 s")
+            log(f"NACHPRÜFUNG {src}: {len(fehlend)} unbestätigt – Durchgang {versuch + 1} von 3 in 60 s")
             time.sleep(60)
         try:
             job = rc.call("sync/copy", srcFs=fs_von(src), dstFs=f"filen:{dst}", _async=True, **extra)
@@ -211,13 +235,13 @@ def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
         except Exception as e:
             log(f"Kopie {src} mit Fehlern beendet: {e} – die Prüfung entscheidet")
         try:
-            fehlend = pruefe(rc, src, dst, filt)
+            bestaetigt |= pruefe(rc, src, dst, filt)
         except Exception as e:
             log(f"Prüfung {src} fehlgeschlagen: {e}")
-            fehlend = ["Prüfung fehlgeschlagen"]
+        fehlend = sorted(quelle - bestaetigt)
         if not fehlend:
             break
-    log(f"GEPRÜFT {src}: {anzahl - len(fehlend)}/{anzahl} ok" + (f", fehlt u. a. {fehlend[:3]}" if fehlend else ""))
+    log(f"GEPRÜFT {src}: {len(quelle) - len(fehlend)}/{len(quelle)} bestätigt" + (f", offen u. a. {fehlend[:3]}" if fehlend else ""))
     return {"pfad": src, "dateien": anzahl, "bytes": bytes_, "fehlend": fehlend}
 
 
