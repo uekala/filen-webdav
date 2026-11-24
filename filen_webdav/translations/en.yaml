@@ -68,5 +68,14 @@ configuration:
   onedrive_nur_loeschen:
     name: Delete without copy
     description: OneDrive paths to delete. Only if all copies succeeded and deletion is on.
+  filen_uebersicht:
+    name: "Filen overview"
+    description: "On start, write all folders in Filen with file count and size to the log and share/filen_webdav."
+  filen_probelauf:
+    name: "Organize Filen: dry run"
+    description: "On: moves are only planned and logged."
+  filen_verschieben:
+    name: "Filen: move"
+    description: "One line per folder or file: \"/from -> /to\". Runs on start, server-side without re-uploading. Existing targets are never merged."
 network:
   8080/tcp: Only needed for access from other devices

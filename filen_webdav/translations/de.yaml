@@ -68,5 +68,14 @@ configuration:
   onedrive_nur_loeschen:
     name: Ohne Kopie löschen
     description: OneDrive-Pfade, die nicht umziehen, sondern weg sollen. Nur wenn alle Kopien fehlerfrei waren und „Nach Prüfung löschen“ an ist.
+  filen_uebersicht:
+    name: "Filen-Übersicht erstellen"
+    description: "Beim Start alle Ordner in Filen mit Anzahl und Größe ins Protokoll und nach share/filen_webdav schreiben."
+  filen_probelauf:
+    name: "Filen ordnen: nur Probelauf"
+    description: "An: Verschiebungen werden nur geplant und ins Protokoll geschrieben."
+  filen_verschieben:
+    name: "Filen: verschieben"
+    description: "Eine Zeile je Ordner oder Datei: „/von -> /nach“. Läuft beim Start, serverseitig ohne neues Hochladen. Existiert das Ziel schon, wird nichts zusammengeführt."
 network:
   8080/tcp: Nur nötig für Zugriff von anderen Geräten

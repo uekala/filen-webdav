@@ -154,9 +154,10 @@ def ausschluesse(eintrag, alle_pfade):
     if e == "":
         # Persönlicher Tresor ist gesperrt und für rclone nicht lesbar
         regeln += [f"/{t}" for t in TRESOR] + [f"/{t}/**" for t in TRESOR]
+        # Nur lose Dateien im Hauptverzeichnis: alles in Unterordnern auslassen.
+        # (MaxDepth kennt der rclone-Filter nicht – es wurde bis 0.3.10 stillschweigend ignoriert.)
+        regeln.append("/*/**")
     filt = {"ExcludeRule": regeln} if regeln else {}
-    if eintrag == ROOT:
-        filt["MaxDepth"] = 1
     return filt
 
 

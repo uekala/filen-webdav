@@ -1,6 +1,12 @@
 # Änderungen
 
-## 0.3.10
+## 0.4.0
+
+- Neu: **Filen ordnen** – Übersicht über alle Ordner in Filen mit Anzahl und Größe, und Ordner oder Dateien
+  per Liste „/von -> /nach“ serverseitig verschieben (ohne neues Hochladen, Ziele werden nie zusammengeführt).
+- OneDrive-Umzug: Der Eintrag „.“ umfasst jetzt wirklich nur die losen Dateien im Hauptverzeichnis. Die
+  Begrenzung auf eine Ebene (MaxDepth) kennt der rclone-Filter nicht; sie wurde ignoriert, sodass „.“ auch
+  nicht gelistete Unterordner kopiert und am Ende gelöscht hat (nach vollständiger Prüfung).
 
 - Foto-Abgleich: Ausnahmen (andere gelistete Unterordner, z. B. `Bilder/Creative Cloud Files` oder Löschkandidaten)
   griffen nicht, weil der Filter relativ zur OneDrive-Wurzel ausgewertet wurde. Dadurch landeten auch

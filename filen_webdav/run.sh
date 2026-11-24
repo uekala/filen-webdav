@@ -25,6 +25,12 @@ CACHE_MODE=$(opt cache_mode)
 LOG_LEVEL=$(opt log_level)
 FOTO_SORTIERUNG=$(jq -r '.foto_sortierung // false' "$OPTIONS")
 ONEDRIVE_MODUS=$(jq -r '.onedrive_modus // "aus"' "$OPTIONS")
+FILEN_UEBERSICHT=$(jq -r '.filen_uebersicht // false' "$OPTIONS")
+FILEN_VERSCHIEBEN=$(jq -r '[.filen_verschieben[]? | select(. != null and . != "")] | length' "$OPTIONS")
+FILEN_ORDNEN=false
+if [ "$FILEN_UEBERSICHT" = "true" ] || [ "$FILEN_VERSCHIEBEN" -gt 0 ]; then
+    FILEN_ORDNEN=true
+fi
 
 [ -n "$EMAIL" ] || fail "Option 'email' fehlt."
 [ -n "$PASSWORD" ] || fail "Option 'password' fehlt."
@@ -62,7 +68,7 @@ if [ "$ONEDRIVE_MODUS" != "aus" ]; then
     python3 /onedrive.py --config || ONEDRIVE_MODUS=aus
 fi
 
-if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ]; then
+if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ] || [ "$FILEN_ORDNEN" = "true" ]; then
     echo "[filen-webdav] Starte rclone-Fernsteuerung (nur lokal)"
     # Speichergrenze für Go: rclone räumt früher auf, statt den Green an den Rand zu bringen
     # Wird rclone beendet (z. B. Speicher), startet es nach 10 s neu.
@@ -85,6 +91,10 @@ fi
 if [ "$ONEDRIVE_MODUS" != "aus" ]; then
     echo "[filen-webdav] OneDrive-Modus: $ONEDRIVE_MODUS"
     python3 /onedrive.py &
+fi
+if [ "$FILEN_ORDNEN" = "true" ]; then
+    echo "[filen-webdav] Filen ordnen: Übersicht=$FILEN_UEBERSICHT, $FILEN_VERSCHIEBEN Verschiebung(en)"
+    python3 /filen_ordnen.py &
 fi
 
 echo "[filen-webdav] WebDAV-Server startet auf Port 8080, Ordner '$ROOT', Zwischenspeicher: $CACHE_MODE"

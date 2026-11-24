@@ -75,6 +75,17 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
 4. Ordner in **Ordner/Dateien kopieren** bzw. **Fotos abgleichen** eintragen, Modus `umzug`, Probelauf an, neu starten.
 5. Passt der Plan: Probelauf aus. Erst danach, wenn alles „ok“ ist, **Nach Prüfung löschen** einschalten.
 
+## 6. Filen ordnen (optional)
+
+- **Filen-Übersicht erstellen** an: Beim Start werden alle Ordner in Filen mit Anzahl und Größe gelesen
+  (unter `/OneDrive` drei Ebenen tief, sonst zwei) und ins Protokoll sowie nach
+  `share/filen_webdav/filen_uebersicht_*.csv` geschrieben.
+- **Filen: verschieben**: eine Zeile je Ordner oder Datei im Format `/von -> /nach`, z. B.
+  `/OneDrive/WEBSHOP -> /Fenomen Gardinen/WEBSHOP`. Filen verschiebt serverseitig, ohne neues Hochladen.
+  Existiert das Ziel schon, wird der Eintrag übersprungen – es wird nie zusammengeführt oder überschrieben.
+  Bereits verschobene Einträge werden beim nächsten Start einfach übersprungen.
+- Erst mit **nur Probelauf** prüfen, dann ausschalten und die App neu starten.
+
 ## Hinweise
 
 - Backups mit Verschlüsselung in Home Assistant lassen; Filen verschlüsselt zusätzlich Ende-zu-Ende.
