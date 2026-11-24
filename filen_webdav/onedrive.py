@@ -248,7 +248,8 @@ def kopiere_ordner(rc, path, ziel_root, probelauf, alle_pfade):
 def foto_abgleich(rc, path, foto_namen, probelauf, alle_pfade):
     src = path.strip("/")
     filt = ausschluesse(src, alle_pfade)
-    alle = RC(fs=OD).list(src, filt=filt or None)
+    # Filter gelten relativ zur Wurzel des Remotes – deshalb direkt auf den Quellordner wurzeln
+    alle = RC(fs=fs_von(src)).list("", filt=filt or None)
     dateien = [f for f in alle if ext_of(f["Name"]) in MEDIA_EXT]
     # Andere Dateien (außer Google-JSON/HTML) werden immer mitgenommen, damit beim Löschen nichts verloren geht
     sonstige = [f for f in alle if ext_of(f["Name"]) not in MEDIA_EXT | {"json", "html"}]

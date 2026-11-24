@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.3.10
+
+- Foto-Abgleich: Ausnahmen (andere gelistete Unterordner, z. B. `Bilder/Creative Cloud Files` oder Löschkandidaten)
+  griffen nicht, weil der Filter relativ zur OneDrive-Wurzel ausgewertet wurde. Dadurch landeten auch
+  Nicht-Foto-Dateien dieser Unterordner in `/Fotos/_Aus-OneDrive`.
+
 ## 0.3.9
 
 - OneDrive-Umzug prüft jetzt positiv: Eine Datei gilt erst als vorhanden, wenn rclone sie im Ziel gefunden und
