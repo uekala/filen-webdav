@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.1
+
+- Aufräumen: Zusatz `ohne /X, /Y` an `doppelt:`- und `einmal:`-Regeln – diese Unterpfade bleiben unberührt
+  (z. B. Quellcode-Bäume, in denen gleiche `index.html`-Platzhalter sonst Lücken reißen würden).
+
 ## 0.5.0
 
 - Neu: **eigenständiger Betrieb** als Docker-Container ohne Home Assistant OS, z. B. auf Unraid. Fertiges Image

@@ -93,6 +93,7 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
   - `einmal: /A` – innerhalb von A bleibt von inhaltsgleichen Dateien nur eine (bevorzugt außerhalb von
     `_Duplikate`/`_Ohne-Datum`, ohne Kopie-Endung wie `_2` oder `(1)`).
   - `weg: /Pfad` – Ordner oder Datei in den Papierkorb.
+  - Zusatz `ohne /X, /Y` an `doppelt:` und `einmal:` – diese Unterpfade bleiben unberührt.
   - Läuft vor dem Verschieben. Nichts wird endgültig gelöscht – der Filen-Papierkorb bleibt, bis man ihn leert.
 - Erst mit **nur Probelauf** prüfen, dann ausschalten und die App neu starten.
 

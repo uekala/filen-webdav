@@ -264,6 +264,8 @@ def aufraeumen(rc, regeln, probelauf):
                                  inhaltsgleich gibt. Geprüft per BLAKE3-Hash von Filen; ist kein Hash lesbar,
                                  zählt nur gleicher Name und gleiche Größe.
       „einmal: /A“             – innerhalb von A von inhaltsgleichen Dateien nur eine behalten (siehe behalten_rang).
+      Zusatz „… ohne /X, /Y“     – diese Unterpfade von A nicht anfassen (z. B. Quellcode-Bäume, die vollständig
+                                 bleiben sollen).
       „weg: /Pfad“             – Ordner oder Datei in den Papierkorb."""
     log("Aufräumen: lese Filen …")
     alle, index = alle_dateien(rc)
@@ -283,6 +285,14 @@ def aufraeumen(rc, regeln, probelauf):
     for regel in regeln:
         art, _, rest = regel.partition(":")
         art = art.strip().lower()
+        ohne = []
+        if " ohne " in rest:
+            rest, _, aus = rest.partition(" ohne ")
+            ohne = [x.strip().strip("/") for x in aus.split(",") if x.strip()]
+
+        def ausgenommen(pfad):
+            return any(unter(pfad, o) for o in ohne)
+
         if art == "weg":
             pfad = rest.strip().strip("/")
             if not pfad:
@@ -313,7 +323,7 @@ def aufraeumen(rc, regeln, probelauf):
                 continue
             gruppen = defaultdict(list)
             for p, s in alle:
-                if unter(p, a) and p not in geloescht:
+                if unter(p, a) and p not in geloescht and not ausgenommen(p):
                     gruppen[doppel_schluessel(os.path.basename(p), s)].append((p, s))
             weg, unsicher, n_b = [], 0, 0
             for eintraege in gruppen.values():
@@ -367,7 +377,7 @@ def aufraeumen(rc, regeln, probelauf):
             continue
         weg, unsicher, n_b = [], 0, 0
         for p, s in alle:
-            if not unter(p, a) or p in geloescht:
+            if not unter(p, a) or p in geloescht or ausgenommen(p):
                 continue
             treffer = [q for q in index[doppel_schluessel(os.path.basename(p), s)]
                        if q != p and not unter(q, a) and q not in geloescht and any(unter(q, z) for z in ziele)]
