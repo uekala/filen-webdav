@@ -84,6 +84,9 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
   `/OneDrive/WEBSHOP -> /Fenomen Gardinen/WEBSHOP`. Filen verschiebt serverseitig, ohne neues Hochladen.
   Existiert das Ziel schon, wird der Eintrag übersprungen – es wird nie zusammengeführt oder überschrieben.
   Bereits verschobene Einträge werden beim nächsten Start einfach übersprungen.
+- **Filen: Doppel suchen** an: sucht doppelte Dateien (ab 1 MB gleiche Größe, darunter Name und Größe) und fasst
+  sie nach Ordnern zusammen – welche Ordner sich wie stark überschneiden. Bericht mit allen Gruppen in
+  `share/filen_webdav/filen_doppelt_*.csv`. Nur lesend.
 - Erst mit **nur Probelauf** prüfen, dann ausschalten und die App neu starten.
 
 ## Hinweise

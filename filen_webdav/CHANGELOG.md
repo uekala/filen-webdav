@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.4.1
+
+- Neu: **Filen: Doppel suchen** – findet doppelte Dateien in Filen und zeigt, welche Ordner sich überschneiden
+  (Protokoll und CSV-Bericht). Nur lesend.
+
 ## 0.4.0
 
 - Neu: **Filen ordnen** – Übersicht über alle Ordner in Filen mit Anzahl und Größe, und Ordner oder Dateien

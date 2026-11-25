@@ -71,6 +71,9 @@ configuration:
   filen_uebersicht:
     name: "Filen-Übersicht erstellen"
     description: "Beim Start alle Ordner in Filen mit Anzahl und Größe ins Protokoll und nach share/filen_webdav schreiben."
+  filen_duplikate:
+    name: "Filen: Doppel suchen"
+    description: "Beim Start doppelte Dateien in Filen suchen (ab 1 MB gleiche Größe, darunter Name und Größe) und nach Ordnern zusammenfassen. Nur lesen, löscht nichts."
   filen_probelauf:
     name: "Filen ordnen: nur Probelauf"
     description: "An: Verschiebungen werden nur geplant und ins Protokoll geschrieben."

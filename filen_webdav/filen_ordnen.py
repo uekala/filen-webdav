@@ -9,6 +9,7 @@ import csv
 import datetime as dt
 import json
 import os
+import re
 import sys
 import time
 from collections import defaultdict
@@ -132,6 +133,95 @@ def uebersicht(rc):
            + f"\n\nDetails: {bericht.replace('/share', 'share')}", nid=NID)
 
 
+# ---------------------------------------------------------------- Doppelte finden
+JAHR = re.compile(r"^(19|20)\d{2}$")
+
+
+def einheit(pfad):
+    """Ordner-Einheit, auf die Doppel zusammengefasst werden (lesbare Ebene je Bereich)."""
+    teile = pfad.strip("/").split("/")[:-1]
+    if not teile:
+        return "/"
+    if teile[0] == "Fotos":
+        if len(teile) > 1 and JAHR.match(teile[1]):
+            return "/Fotos (sortiert, JJJJ/MM)"
+        if len(teile) > 1 and teile[1] == "_Aus-OneDrive":
+            return "/" + "/".join(teile[:4])
+        return "/" + "/".join(teile[:2])
+    return "/" + "/".join(teile[:3])
+
+
+def doppel_schluessel(name, groesse):
+    # Ab 1 MB reicht die exakte Größe (gleiche Bytezahl bei verschiedenen Dateien ist dann sehr selten),
+    # so werden auch umbenannte Kopien erkannt. Darunter zählen Name und Größe zusammen.
+    if groesse >= 1_000_000:
+        return ("G", groesse)
+    return ("N", name.lower(), groesse)
+
+
+def duplikate(rc):
+    log("Doppel-Suche: lese Filen …")
+    oben = sorted(os.path.basename(e["Path"]) for e in nochmal(liste_flach, rc, "", True))
+    gruppen = defaultdict(list)
+    for d in oben:
+        if d == "Home Assistant":
+            continue  # HA-Backups sind absichtlich mehrfach (Versionen)
+        n = 0
+        for p, s in sammle(rc, d):
+            if s <= 0:
+                continue
+            voll = f"{d}/{p}"
+            gruppen[doppel_schluessel(os.path.basename(p), s)].append((voll, s))
+            n += 1
+        log(f"… /{d}: {n} Dateien")
+    doppelt = {k: v for k, v in gruppen.items() if len(v) > 1}
+    del gruppen
+
+    paare = defaultdict(lambda: [0, 0])     # (einheit a, einheit b) -> [dateien, bytes]
+    innen = defaultdict(lambda: [0, 0])     # einheit -> [dateien, bytes] (Doppel im selben Ordner)
+    ueberfluessig = 0
+    for eintraege in doppelt.values():
+        s = eintraege[0][1]
+        ueberfluessig += s * (len(eintraege) - 1)
+        einheiten = sorted({einheit(p) for p, _ in eintraege})
+        if len(einheiten) < len(eintraege):
+            for e in einheiten:
+                k = sum(1 for p, _ in eintraege if einheit(p) == e)
+                if k > 1:
+                    innen[e][0] += k - 1
+                    innen[e][1] += s * (k - 1)
+        for i, a in enumerate(einheiten):
+            for b in einheiten[i + 1:]:
+                paare[(a, b)][0] += 1
+                paare[(a, b)][1] += s
+
+    os.makedirs(BERICHT_DIR, exist_ok=True)
+    stempel = f"{dt.datetime.now():%Y-%m-%d_%H%M}"
+    bericht = os.path.join(BERICHT_DIR, f"filen_doppelt_{stempel}.csv")
+    with open(bericht, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, delimiter=";")
+        w.writerow(["gruppe", "bytes", "pfad"])
+        for i, eintraege in enumerate(sorted(doppelt.values(), key=lambda v: -v[0][1] * (len(v) - 1)), 1):
+            for p, s in eintraege:
+                w.writerow([i, s, "/" + p])
+
+    log(f"DOPPEL: {len(doppelt)} Gruppen, überflüssig ca. {groesse_text(ueberfluessig)}")
+    log("DOPPEL zwischen Ordnern (Dateien, Größe):")
+    for (a, b), (n, s) in sorted(paare.items(), key=lambda kv: -kv[1][1])[:40]:
+        if s < 20e6 and n < 50:
+            break
+        log(f"  {a}  ⇄  {b}: {n} Dateien, {groesse_text(s)}")
+    log("DOPPEL innerhalb eines Ordners:")
+    for e, (n, s) in sorted(innen.items(), key=lambda kv: -kv[1][1])[:20]:
+        if s < 20e6 and n < 50:
+            break
+        log(f"  {e}: {n} Dateien, {groesse_text(s)}")
+    log(f"Bericht: {bericht.replace('/share', 'share')}")
+    notify("🗂️ Filen: Doppel-Suche fertig",
+           f"{len(doppelt)} Gruppen, überflüssig ca. {groesse_text(ueberfluessig)}\n"
+           f"Details: {bericht.replace('/share', 'share')}", nid=NID)
+
+
 def verschiebe(rc, zeilen, probelauf):
     erledigt, uebersprungen = 0, 0
     for zeile in zeilen:
@@ -187,6 +277,11 @@ def main():
             uebersicht(rc)
         except Exception as e:
             log(f"FEHLER Übersicht: {e}")
+    if opt.get("filen_duplikate"):
+        try:
+            duplikate(rc)
+        except Exception as e:
+            log(f"FEHLER Doppel-Suche: {e}")
 
 
 if __name__ == "__main__":

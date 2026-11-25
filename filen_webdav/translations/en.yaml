@@ -71,6 +71,9 @@ configuration:
   filen_uebersicht:
     name: "Filen overview"
     description: "On start, write all folders in Filen with file count and size to the log and share/filen_webdav."
+  filen_duplikate:
+    name: "Filen: find duplicates"
+    description: "On start, find duplicate files in Filen (same size from 1 MB, else name and size) and summarize by folder. Read-only, deletes nothing."
   filen_probelauf:
     name: "Organize Filen: dry run"
     description: "On: moves are only planned and logged."

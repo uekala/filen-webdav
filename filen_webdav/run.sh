@@ -26,9 +26,10 @@ LOG_LEVEL=$(opt log_level)
 FOTO_SORTIERUNG=$(jq -r '.foto_sortierung // false' "$OPTIONS")
 ONEDRIVE_MODUS=$(jq -r '.onedrive_modus // "aus"' "$OPTIONS")
 FILEN_UEBERSICHT=$(jq -r '.filen_uebersicht // false' "$OPTIONS")
+FILEN_DUPLIKATE=$(jq -r '.filen_duplikate // false' "$OPTIONS")
 FILEN_VERSCHIEBEN=$(jq -r '[.filen_verschieben[]? | select(. != null and . != "")] | length' "$OPTIONS")
 FILEN_ORDNEN=false
-if [ "$FILEN_UEBERSICHT" = "true" ] || [ "$FILEN_VERSCHIEBEN" -gt 0 ]; then
+if [ "$FILEN_UEBERSICHT" = "true" ] || [ "$FILEN_DUPLIKATE" = "true" ] || [ "$FILEN_VERSCHIEBEN" -gt 0 ]; then
     FILEN_ORDNEN=true
 fi
 
@@ -93,7 +94,7 @@ if [ "$ONEDRIVE_MODUS" != "aus" ]; then
     python3 /onedrive.py &
 fi
 if [ "$FILEN_ORDNEN" = "true" ]; then
-    echo "[filen-webdav] Filen ordnen: Übersicht=$FILEN_UEBERSICHT, $FILEN_VERSCHIEBEN Verschiebung(en)"
+    echo "[filen-webdav] Filen ordnen: Übersicht=$FILEN_UEBERSICHT, Doppel-Suche=$FILEN_DUPLIKATE, $FILEN_VERSCHIEBEN Verschiebung(en)"
     python3 /filen_ordnen.py &
 fi
 
