@@ -1,5 +1,14 @@
 # Änderungen
 
+## 0.5.0
+
+- Neu: **eigenständiger Betrieb** als Docker-Container ohne Home Assistant OS, z. B. auf Unraid. Fertiges Image
+  für amd64 und arm64 unter `ghcr.io/uekala/filen-webdav`, Anleitung im Repository unter `deploy/standalone`.
+  Als HA-App bleibt alles wie bisher.
+- Benachrichtigungen gehen im eigenständigen Betrieb über `HA_URL` und `HA_TOKEN` an Home Assistant.
+- Die Speichergrenze der rclone-Fernsteuerung (400 MiB) lässt sich mit `RCD_MEMLIMIT` ändern.
+- Fehlt `/data/options.json` oder ist sie kein gültiges JSON, steht das jetzt klar im Protokoll.
+
 ## 0.4.3
 
 - Aufräumen: neue Regel `einmal: /A` – innerhalb von A bleibt von inhaltsgleichen Dateien (BLAKE3-Hash) nur eine.

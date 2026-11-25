@@ -102,3 +102,5 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
 - Die Add-on-Optionen (inkl. Filen-Zugangsdaten) sind Teil der HA-Backups. Die Backups sind mit dem
   Backup-Schlüssel verschlüsselt.
 - Port 8080 bleibt standardmäßig geschlossen. Nur öffnen, wenn andere Geräte zugreifen sollen, und nie am Router freigeben.
+- Ohne Home Assistant OS läuft dasselbe Programm als eigenständiger Docker-Container, siehe `deploy/standalone`
+  im Repository.

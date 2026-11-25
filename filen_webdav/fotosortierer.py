@@ -299,15 +299,34 @@ def plan(rc, ziel, quellen, tmp):
 
 
 # ---------------------------------------------------------------- Ablauf
+def ha_zugang():
+    """Adresse und Token für Home Assistant, oder (None, None), wenn es keinen Zugang gibt.
+
+    Als HA-App läuft alles über den Supervisor. Im eigenständigen Betrieb (Docker ohne
+    Home Assistant OS) kommen Adresse und langlebiges Zugriffstoken aus HA_URL und HA_TOKEN.
+    """
+    token = os.environ.get("SUPERVISOR_TOKEN")
+    if token:
+        return "http://supervisor/core", token
+    url = os.environ.get("HA_URL", "").strip().rstrip("/")
+    token = os.environ.get("HA_TOKEN", "").strip()
+    if not url or not token:
+        return None, None
+    if not url.startswith(("http://", "https://")):
+        log("HA_URL muss mit http:// oder https:// beginnen – keine Benachrichtigung.")
+        return None, None
+    return url, token
+
+
 def notify(title, message, nid="filen_fotosortierer", versuche=6):
     """Benachrichtigung in HA. Läuft HA gerade neu (502), wird es bis zu 5 min lang erneut versucht."""
-    token = os.environ.get("SUPERVISOR_TOKEN")
+    basis, token = ha_zugang()
     if not token:
         return
     data = json.dumps({"title": title, "message": message, "notification_id": nid}).encode()
     for versuch in range(1, versuche + 1):
         req = urllib.request.Request(
-            "http://supervisor/core/api/services/persistent_notification/create",
+            f"{basis}/api/services/persistent_notification/create",
             data=data,
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         )
