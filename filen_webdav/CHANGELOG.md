@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.2
+
+- Aufräumen: neue Regel `gleichname: /A => /B` – gleiche Größe und gleicher Name (ohne Zusätze wie `_3f3258d9`,
+  `_2`, `(1)`), für Doppel, deren Inhalt sich per Hash nicht bestätigen lässt.
+
 ## 0.5.1
 
 - Aufräumen: Zusatz `ohne /X, /Y` an `doppelt:`- und `einmal:`-Regeln – diese Unterpfade bleiben unberührt

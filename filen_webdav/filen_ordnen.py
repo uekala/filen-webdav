@@ -10,6 +10,7 @@ import datetime as dt
 import json
 import os
 import re
+import unicodedata
 import sys
 import time
 from collections import defaultdict
@@ -249,6 +250,17 @@ def unter(pfad, basis):
 KOPIE_ENDUNG = re.compile(r"(_\d{1,2}|\s*\(\d+\)|[-_ ]?(kopie|copy|tablet))$", re.IGNORECASE)
 
 
+ZUFALLS_ENDUNG = re.compile(r"_[0-9a-f]{8}$", re.IGNORECASE)
+
+
+def namens_stamm(name):
+    """Dateiname ohne Endung, Zufalls-Zusatz (_3f3258d9) und Kopie-Endung (_2, (1), Kopie) – für gleichname:."""
+    stamm, endung = os.path.splitext(unicodedata.normalize("NFC", name).lower())
+    stamm = ZUFALLS_ENDUNG.sub("", stamm)
+    stamm = KOPIE_ENDUNG.sub("", stamm)
+    return stamm.strip(), endung
+
+
 def behalten_rang(pfad):
     """Welche von mehreren gleichen Dateien bleibt (kleinster Rang): nicht in _Duplikate/_Ohne-Datum/Neuer Ordner,
     ohne Kopie-Endung (_2, (1), -Kopie, -TABLET), längerer Dateiname (Originalname statt „8.CR2“), kürzerer Pfad."""
@@ -366,8 +378,8 @@ def aufraeumen(rc, regeln, probelauf):
             gesamt_n += len(weg)
             gesamt_b += n_b
             continue
-        if art != "doppelt" or "=>" not in rest:
-            log(f"UNGÜLTIG (doppelt: /A => /B, einmal: /A oder weg: /Pfad): {regel}")
+        if art not in ("doppelt", "gleichname") or "=>" not in rest:
+            log(f"UNGÜLTIG (doppelt: /A => /B, gleichname: /A => /B, einmal: /A oder weg: /Pfad): {regel}")
             continue
         a, _, bs = rest.partition("=>")
         a = a.strip().strip("/")
@@ -383,8 +395,18 @@ def aufraeumen(rc, regeln, probelauf):
                        if q != p and not unter(q, a) and q not in geloescht and any(unter(q, z) for z in ziele)]
             if not treffer:
                 continue
-            hp = hash_von(p)
             beleg = None
+            if art == "gleichname":
+                sp = namens_stamm(os.path.basename(p))
+                beleg = next((q for q in treffer if namens_stamm(os.path.basename(q)) == sp), None)
+                if beleg is None:
+                    unsicher += 1
+                    continue
+                weg.append((p, s, beleg))
+                geloescht.add(p)
+                n_b += s
+                continue
+            hp = hash_von(p)
             if hp:
                 beleg = next((q for q in treffer if hash_von(q) == hp), None)
             else:
@@ -395,9 +417,10 @@ def aufraeumen(rc, regeln, probelauf):
             weg.append((p, s, beleg))
             geloescht.add(p)
             n_b += s
-        log(f"{'PROBELAUF ' if probelauf else ''}doppelt /{a} ⇒ {', '.join('/' + z for z in ziele)}: "
+        log(f"{'PROBELAUF ' if probelauf else ''}{art} /{a} ⇒ {', '.join('/' + z for z in ziele)}: "
             f"{len(weg)} Dateien, {groesse_text(n_b)} in den Papierkorb"
-            + (f", {unsicher} gleich groß, aber Inhalt nicht bestätigt – bleiben" if unsicher else ""))
+            + (f", {unsicher} gleich groß, aber " + ("Name verschieden" if art == "gleichname" else "Inhalt nicht bestätigt")
+               + " – bleiben" if unsicher else ""))
         for p, s, q in weg[:8]:
             log(f"    /{p}  (= /{q})")
         if not probelauf:

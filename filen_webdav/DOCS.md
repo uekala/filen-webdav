@@ -90,6 +90,9 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
 - **Filen: aufräumen**: Regeln je Zeile.
   - `doppelt: /A => /B, /C` – Dateien unter A kommen in den Filen-Papierkorb, wenn es sie unter B oder C
     inhaltsgleich gibt (Vergleich per BLAKE3-Hash, den Filen speichert; ist keiner lesbar, zählen Name und Größe).
+  - `gleichname: /A => /B` – wie `doppelt:`, aber ohne Hash: gleiche Größe und gleicher Name, wobei Zusätze wie
+    `_3f3258d9`, `_2`, `(1)` oder `Kopie` nicht zählen. Für Fälle, in denen der Hash fehlt oder abweicht
+    (z. B. Handy-Uploads); etwas weniger sicher, daher vorher Probelauf.
   - `einmal: /A` – innerhalb von A bleibt von inhaltsgleichen Dateien nur eine (bevorzugt außerhalb von
     `_Duplikate`/`_Ohne-Datum`, ohne Kopie-Endung wie `_2` oder `(1)`).
   - `weg: /Pfad` – Ordner oder Datei in den Papierkorb.
