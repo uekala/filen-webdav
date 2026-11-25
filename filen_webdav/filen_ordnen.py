@@ -246,11 +246,24 @@ def unter(pfad, basis):
     return pfad == basis or pfad.startswith(basis + "/")
 
 
+KOPIE_ENDUNG = re.compile(r"(_\d{1,2}|\s*\(\d+\)|[-_ ]?(kopie|copy|tablet))$", re.IGNORECASE)
+
+
+def behalten_rang(pfad):
+    """Welche von mehreren gleichen Dateien bleibt (kleinster Rang): nicht in _Duplikate/_Ohne-Datum/Neuer Ordner,
+    ohne Kopie-Endung (_2, (1), -Kopie, -TABLET), längerer Dateiname (Originalname statt „8.CR2“), kürzerer Pfad."""
+    name = os.path.basename(pfad)
+    stamm = os.path.splitext(name)[0]
+    ordner = 2 if ("/_Duplikate/" in pfad or "/_Ohne-Datum/" in pfad) else (1 if "/Neuer Ordner/" in pfad else 0)
+    return (ordner, 1 if KOPIE_ENDUNG.search(stamm) else 0, -len(stamm), len(pfad), pfad)
+
+
 def aufraeumen(rc, regeln, probelauf):
     """Regeln:
       „doppelt: /A => /B, /C“ – Dateien unter A in den Papierkorb, die es unter B oder C (außerhalb von A)
                                  inhaltsgleich gibt. Geprüft per BLAKE3-Hash von Filen; ist kein Hash lesbar,
                                  zählt nur gleicher Name und gleiche Größe.
+      „einmal: /A“             – innerhalb von A von inhaltsgleichen Dateien nur eine behalten (siehe behalten_rang).
       „weg: /Pfad“             – Ordner oder Datei in den Papierkorb."""
     log("Aufräumen: lese Filen …")
     alle, index = alle_dateien(rc)
@@ -293,8 +306,58 @@ def aufraeumen(rc, regeln, probelauf):
             gesamt_n += n
             gesamt_b += b
             continue
+        if art == "einmal":
+            a = rest.strip().strip("/")
+            if not a:
+                log(f"UNGÜLTIG: {regel}")
+                continue
+            gruppen = defaultdict(list)
+            for p, s in alle:
+                if unter(p, a) and p not in geloescht:
+                    gruppen[doppel_schluessel(os.path.basename(p), s)].append((p, s))
+            weg, unsicher, n_b = [], 0, 0
+            for eintraege in gruppen.values():
+                if len(eintraege) < 2:
+                    continue
+                nach_hash = defaultdict(list)
+                for p, s in eintraege:
+                    h = hash_von(p)
+                    if h:
+                        nach_hash[h].append((p, s))
+                    else:
+                        unsicher += 1
+                for gleich in nach_hash.values():
+                    if len(gleich) < 2:
+                        continue
+                    gleich.sort(key=lambda e: behalten_rang(e[0]))
+                    bleibt = gleich[0][0]
+                    for p, s in gleich[1:]:
+                        weg.append((p, s, bleibt))
+                        geloescht.add(p)
+                        n_b += s
+            log(f"{'PROBELAUF ' if probelauf else ''}einmal /{a}: {len(weg)} Dateien, {groesse_text(n_b)} in den Papierkorb"
+                + (f", {unsicher} ohne lesbaren Hash – bleiben" if unsicher else ""))
+            for p, s, q in weg[:8]:
+                log(f"    /{p}  (bleibt: /{q})")
+            if not probelauf:
+                fehler = 0
+                for p, s, q in weg:
+                    try:
+                        nochmal(rc.call, "operations/deletefile", fs="filen:", remote=p, versuche=3, pause=10)
+                    except Exception as e:
+                        fehler += 1
+                        log(f"FEHLER /{p}: {e}")
+                try:
+                    rc.call_job("operations/rmdirs", fs="filen:", remote=a, leaveRoot=True)
+                except Exception:
+                    pass
+                if fehler:
+                    log(f"  {fehler} Dateien konnten nicht gelöscht werden")
+            gesamt_n += len(weg)
+            gesamt_b += n_b
+            continue
         if art != "doppelt" or "=>" not in rest:
-            log(f"UNGÜLTIG (doppelt: /A => /B oder weg: /Pfad): {regel}")
+            log(f"UNGÜLTIG (doppelt: /A => /B, einmal: /A oder weg: /Pfad): {regel}")
             continue
         a, _, bs = rest.partition("=>")
         a = a.strip().strip("/")

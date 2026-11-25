@@ -90,6 +90,8 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
 - **Filen: aufräumen**: Regeln je Zeile.
   - `doppelt: /A => /B, /C` – Dateien unter A kommen in den Filen-Papierkorb, wenn es sie unter B oder C
     inhaltsgleich gibt (Vergleich per BLAKE3-Hash, den Filen speichert; ist keiner lesbar, zählen Name und Größe).
+  - `einmal: /A` – innerhalb von A bleibt von inhaltsgleichen Dateien nur eine (bevorzugt außerhalb von
+    `_Duplikate`/`_Ohne-Datum`, ohne Kopie-Endung wie `_2` oder `(1)`).
   - `weg: /Pfad` – Ordner oder Datei in den Papierkorb.
   - Läuft vor dem Verschieben. Nichts wird endgültig gelöscht – der Filen-Papierkorb bleibt, bis man ihn leert.
 - Erst mit **nur Probelauf** prüfen, dann ausschalten und die App neu starten.

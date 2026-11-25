@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.4.3
+
+- Aufräumen: neue Regel `einmal: /A` – innerhalb von A bleibt von inhaltsgleichen Dateien (BLAKE3-Hash) nur eine.
+  Behalten wird die Datei außerhalb von `_Duplikate`/`_Ohne-Datum`/„Neuer Ordner“, ohne Kopie-Endung
+  (`_2`, `(1)`, `-Kopie`, `-TABLET`), mit dem längeren Dateinamen und dem kürzeren Pfad.
+
 ## 0.4.2
 
 - Neu: **Filen: aufräumen** – Regeln `doppelt: /A => /B` (Dateien unter A in den Papierkorb, die es unter B
