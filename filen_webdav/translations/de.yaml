@@ -80,5 +80,8 @@ configuration:
   filen_verschieben:
     name: "Filen: verschieben"
     description: "Eine Zeile je Ordner oder Datei: „/von -> /nach“. Läuft beim Start, serverseitig ohne neues Hochladen. Existiert das Ziel schon, wird nichts zusammengeführt."
+  filen_aufraeumen:
+    name: "Filen: aufräumen"
+    description: "Regeln, je Zeile: „doppelt: /A => /B“ legt Dateien unter A in den Papierkorb, die es unter B inhaltsgleich gibt (BLAKE3-Hash von Filen); „weg: /Pfad“ legt einen Ordner oder eine Datei in den Papierkorb. Läuft beim Start, mit „nur Probelauf“ zuerst testen."
 network:
   8080/tcp: Nur nötig für Zugriff von anderen Geräten

@@ -80,5 +80,8 @@ configuration:
   filen_verschieben:
     name: "Filen: move"
     description: "One line per folder or file: \"/from -> /to\". Runs on start, server-side without re-uploading. Existing targets are never merged."
+  filen_aufraeumen:
+    name: "Filen: clean up"
+    description: "Rules, one per line: \"doppelt: /A => /B\" moves files under A to the trash if an identical copy exists under B (Filen BLAKE3 hash); \"weg: /path\" moves a folder or file to the trash. Runs on start; test with dry run first."
 network:
   8080/tcp: Only needed for access from other devices

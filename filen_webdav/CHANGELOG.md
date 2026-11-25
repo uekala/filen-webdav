@@ -1,5 +1,11 @@
 # Änderungen
 
+## 0.4.2
+
+- Neu: **Filen: aufräumen** – Regeln `doppelt: /A => /B` (Dateien unter A in den Papierkorb, die es unter B
+  inhaltsgleich gibt, geprüft per BLAKE3-Hash) und `weg: /Pfad`. Mit Probelauf.
+- Doppel-Suche zeigt zusätzlich die 30 größten Doppel-Gruppen mit Pfaden.
+
 ## 0.4.1
 
 - Neu: **Filen: Doppel suchen** – findet doppelte Dateien in Filen und zeigt, welche Ordner sich überschneiden

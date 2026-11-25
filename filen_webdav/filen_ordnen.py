@@ -216,10 +216,136 @@ def duplikate(rc):
         if s < 20e6 and n < 50:
             break
         log(f"  {e}: {n} Dateien, {groesse_text(s)}")
+    log("GRÖSSTE DOPPEL-GRUPPEN (Größe × Anzahl: Pfade):")
+    for eintraege in sorted(doppelt.values(), key=lambda v: -v[0][1] * (len(v) - 1))[:30]:
+        pfade = " | ".join("/" + p for p, _ in eintraege[:4]) + (" | …" if len(eintraege) > 4 else "")
+        log(f"  {groesse_text(eintraege[0][1])} × {len(eintraege)}: {pfade}")
     log(f"Bericht: {bericht.replace('/share', 'share')}")
     notify("🗂️ Filen: Doppel-Suche fertig",
            f"{len(doppelt)} Gruppen, überflüssig ca. {groesse_text(ueberfluessig)}\n"
            f"Details: {bericht.replace('/share', 'share')}", nid=NID)
+
+
+# ---------------------------------------------------------------- Aufräumen
+def alle_dateien(rc):
+    """Alle Dateien in Filen (ohne HA-Backups) als Liste (pfad, größe) und Index Schlüssel -> Pfade."""
+    oben = sorted(os.path.basename(e["Path"]) for e in nochmal(liste_flach, rc, "", True))
+    alle, index = [], defaultdict(list)
+    for d in oben:
+        if d == "Home Assistant":
+            continue
+        for p, s in sammle(rc, d):
+            if s > 0:
+                voll = f"{d}/{p}"
+                alle.append((voll, s))
+                index[doppel_schluessel(os.path.basename(p), s)].append(voll)
+    return alle, index
+
+
+def unter(pfad, basis):
+    return pfad == basis or pfad.startswith(basis + "/")
+
+
+def aufraeumen(rc, regeln, probelauf):
+    """Regeln:
+      „doppelt: /A => /B, /C“ – Dateien unter A in den Papierkorb, die es unter B oder C (außerhalb von A)
+                                 inhaltsgleich gibt. Geprüft per BLAKE3-Hash von Filen; ist kein Hash lesbar,
+                                 zählt nur gleicher Name und gleiche Größe.
+      „weg: /Pfad“             – Ordner oder Datei in den Papierkorb."""
+    log("Aufräumen: lese Filen …")
+    alle, index = alle_dateien(rc)
+    hashes = {}
+
+    def hash_von(pfad):
+        if pfad not in hashes:
+            try:
+                r = rc.call("operations/hashsumfile", fs="filen:", remote=pfad, hashType="blake3")
+                hashes[pfad] = (r.get("hash") or "").lower() or None
+            except Exception:
+                hashes[pfad] = None
+        return hashes[pfad]
+
+    geloescht = set()
+    gesamt_n, gesamt_b = 0, 0
+    for regel in regeln:
+        art, _, rest = regel.partition(":")
+        art = art.strip().lower()
+        if art == "weg":
+            pfad = rest.strip().strip("/")
+            if not pfad:
+                log(f"UNGÜLTIG: {regel}")
+                continue
+            e = nochmal(eintrag, rc, pfad)
+            if e is None:
+                log(f"ÜBERSPRUNGEN /{pfad}: nicht vorhanden")
+                continue
+            n = sum(1 for p, _ in alle if unter(p, pfad))
+            b = sum(s for p, s in alle if unter(p, pfad))
+            if probelauf:
+                log(f"PROBELAUF: würde /{pfad} in den Papierkorb legen ({n} Dateien, {groesse_text(b)})")
+            else:
+                if e.get("IsDir"):
+                    rc.call_job("operations/purge", fs="filen:", remote=pfad)
+                else:
+                    rc.call("operations/deletefile", fs="filen:", remote=pfad)
+                log(f"PAPIERKORB /{pfad} ({n} Dateien, {groesse_text(b)})")
+            geloescht.update(p for p, _ in alle if unter(p, pfad))
+            gesamt_n += n
+            gesamt_b += b
+            continue
+        if art != "doppelt" or "=>" not in rest:
+            log(f"UNGÜLTIG (doppelt: /A => /B oder weg: /Pfad): {regel}")
+            continue
+        a, _, bs = rest.partition("=>")
+        a = a.strip().strip("/")
+        ziele = [b.strip().strip("/") for b in bs.split(",") if b.strip()]
+        if not a or not ziele:
+            log(f"UNGÜLTIG: {regel}")
+            continue
+        weg, unsicher, n_b = [], 0, 0
+        for p, s in alle:
+            if not unter(p, a) or p in geloescht:
+                continue
+            treffer = [q for q in index[doppel_schluessel(os.path.basename(p), s)]
+                       if q != p and not unter(q, a) and q not in geloescht and any(unter(q, z) for z in ziele)]
+            if not treffer:
+                continue
+            hp = hash_von(p)
+            beleg = None
+            if hp:
+                beleg = next((q for q in treffer if hash_von(q) == hp), None)
+            else:
+                beleg = next((q for q in treffer if os.path.basename(q).lower() == os.path.basename(p).lower()), None)
+            if beleg is None:
+                unsicher += 1
+                continue
+            weg.append((p, s, beleg))
+            geloescht.add(p)
+            n_b += s
+        log(f"{'PROBELAUF ' if probelauf else ''}doppelt /{a} ⇒ {', '.join('/' + z for z in ziele)}: "
+            f"{len(weg)} Dateien, {groesse_text(n_b)} in den Papierkorb"
+            + (f", {unsicher} gleich groß, aber Inhalt nicht bestätigt – bleiben" if unsicher else ""))
+        for p, s, q in weg[:8]:
+            log(f"    /{p}  (= /{q})")
+        if not probelauf:
+            fehler = 0
+            for p, s, q in weg:
+                try:
+                    nochmal(rc.call, "operations/deletefile", fs="filen:", remote=p, versuche=3, pause=10)
+                except Exception as e:
+                    fehler += 1
+                    log(f"FEHLER /{p}: {e}")
+            try:
+                rc.call_job("operations/rmdirs", fs="filen:", remote=a, leaveRoot=True)
+            except Exception:
+                pass
+            if fehler:
+                log(f"  {fehler} Dateien konnten nicht gelöscht werden")
+        gesamt_n += len(weg)
+        gesamt_b += n_b
+    log(f"AUFRÄUMEN {'(Probelauf) ' if probelauf else ''}gesamt: {gesamt_n} Dateien, {groesse_text(gesamt_b)}")
+    if not probelauf:
+        notify("🗂️ Filen aufgeräumt", f"{gesamt_n} Dateien, {groesse_text(gesamt_b)} in den Filen-Papierkorb", nid=NID)
 
 
 def verschiebe(rc, zeilen, probelauf):
@@ -269,6 +395,13 @@ def main():
     if not warte_auf_rc(rc):
         log("rclone-Fernsteuerung nicht erreichbar – Abbruch")
         return
+    probelauf = bool(opt.get("filen_probelauf", True))
+    regeln = [z for z in opt.get("filen_aufraeumen", []) if z and z.strip()]
+    if regeln:
+        try:
+            aufraeumen(rc, regeln, probelauf)
+        except Exception as e:
+            log(f"FEHLER Aufräumen: {e}")
     zeilen = [z for z in opt.get("filen_verschieben", []) if z and z.strip()]
     if zeilen:
         verschiebe(rc, zeilen, bool(opt.get("filen_probelauf", True)))

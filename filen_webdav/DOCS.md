@@ -87,6 +87,11 @@ als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erne
 - **Filen: Doppel suchen** an: sucht doppelte Dateien (ab 1 MB gleiche Größe, darunter Name und Größe) und fasst
   sie nach Ordnern zusammen – welche Ordner sich wie stark überschneiden. Bericht mit allen Gruppen in
   `share/filen_webdav/filen_doppelt_*.csv`. Nur lesend.
+- **Filen: aufräumen**: Regeln je Zeile.
+  - `doppelt: /A => /B, /C` – Dateien unter A kommen in den Filen-Papierkorb, wenn es sie unter B oder C
+    inhaltsgleich gibt (Vergleich per BLAKE3-Hash, den Filen speichert; ist keiner lesbar, zählen Name und Größe).
+  - `weg: /Pfad` – Ordner oder Datei in den Papierkorb.
+  - Läuft vor dem Verschieben. Nichts wird endgültig gelöscht – der Filen-Papierkorb bleibt, bis man ihn leert.
 - Erst mit **nur Probelauf** prüfen, dann ausschalten und die App neu starten.
 
 ## Hinweise
