@@ -1,0 +1,21 @@
+services:
+  filen-webdav:
+    image: ghcr.io/uekala/filen-webdav:latest
+    container_name: filen-webdav
+    restart: unless-stopped
+    environment:
+      # Ortszeit für die Uhrzeit der Fotosortierung und die Namen der Berichte.
+      TZ: ${TZ:-Europe/Berlin}
+      # Optional: Benachrichtigungen in Home Assistant. Ohne beide Werte läuft alles, nur ohne Meldung.
+      HA_URL: ${HA_URL:-}
+      HA_TOKEN: ${HA_TOKEN:-}
+      # Speichergrenze der rclone-Fernsteuerung (Sortierer, Umzug, Ordnen). Standard 400MiB.
+      RCD_MEMLIMIT: ${RCD_MEMLIMIT:-400MiB}
+    ports:
+      # Nur im Heimnetz nutzen und nie am Router freigeben.
+      - "8080:8080"
+    volumes:
+      # options.json, rclone.conf und Zwischenspeicher
+      - ./data:/data
+      # Berichte von Fotosortierung, OneDrive-Umzug und „Filen ordnen“
+      - ./berichte:/share/filen_webdav

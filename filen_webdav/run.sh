@@ -15,6 +15,19 @@ fail() {
     exit 1
 }
 
+# Als HA-App schreibt Home Assistant die Datei. Im eigenständigen Betrieb legt man sie selbst an
+# (Vorlage: deploy/standalone/options.beispiel.json).
+[ -f "$OPTIONS" ] || fail "$OPTIONS fehlt. Ohne Home Assistant die Datei nach der Vorlage options.beispiel.json anlegen."
+jq -e 'type == "object"' "$OPTIONS" >/dev/null 2>&1 || fail "$OPTIONS ist kein gültiges JSON."
+
+if [ -z "${SUPERVISOR_TOKEN:-}" ]; then
+    if [ -n "${HA_URL:-}" ] && [ -n "${HA_TOKEN:-}" ]; then
+        echo "[filen-webdav] Eigenständiger Betrieb, Benachrichtigungen gehen an $HA_URL"
+    else
+        echo "[filen-webdav] Eigenständiger Betrieb ohne Benachrichtigungen (HA_URL und HA_TOKEN nicht gesetzt)"
+    fi
+fi
+
 EMAIL=$(opt email)
 PASSWORD=$(opt password)
 API_KEY=$(opt api_key)
@@ -72,7 +85,9 @@ fi
 
 if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ] || [ "$FILEN_ORDNEN" = "true" ]; then
     echo "[filen-webdav] Starte rclone-Fernsteuerung (nur lokal)"
-    # Speichergrenze für Go: rclone räumt früher auf, statt den Green an den Rand zu bringen
+    # Speichergrenze für Go: rclone räumt früher auf, statt den Green an den Rand zu bringen.
+    # Auf größeren Geräten lässt sie sich mit RCD_MEMLIMIT anheben (z. B. 1GiB).
+    RCD_MEMLIMIT=${RCD_MEMLIMIT:-400MiB}
     # Wird rclone beendet (z. B. Speicher), startet es nach 10 s neu.
     # Die Fernsteuerung loggt nur Hinweise und Fehler, nicht jede kopierte Datei –
     # sonst verdrängen große Kopien die Ergebnisse von Sortierer und Umzug aus dem Log.
@@ -80,7 +95,7 @@ if [ "$FOTO_SORTIERUNG" = "true" ] || [ "$ONEDRIVE_MODUS" != "aus" ] || [ "$FILE
     [ "$LOG_LEVEL" = "DEBUG" ] && RCD_LEVEL=DEBUG
     (
         while true; do
-            GOMEMLIMIT=400MiB rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --use-mmap --log-level "$RCD_LEVEL"
+            GOMEMLIMIT="$RCD_MEMLIMIT" rclone rcd --rc-addr 127.0.0.1:5572 --rc-no-auth --use-mmap --log-level "$RCD_LEVEL"
             echo "[filen-webdav] rclone-Fernsteuerung beendet (Code $?) – Neustart in 10 s"
             sleep 10
         done

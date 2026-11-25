@@ -1,0 +1,33 @@
+{
+  "email": "",
+  "password": "",
+  "api_key": "",
+  "root_folder": "/Home Assistant",
+  "webdav_user": "homeassistant",
+  "webdav_password": "",
+  "cache_mode": "off",
+  "log_level": "INFO",
+  "foto_sortierung": false,
+  "foto_probelauf": true,
+  "foto_quellen": [
+    "/Fotos/Google-Fotos-Export-2026-11",
+    "/Fotos/Google-Fotos-nur-Sept-Export"
+  ],
+  "foto_ziel": "/Fotos",
+  "foto_uhrzeit": "03:30",
+  "foto_beim_start": true,
+  "onedrive_modus": "aus",
+  "onedrive_token": "",
+  "onedrive_drive_id": "",
+  "onedrive_probelauf": true,
+  "onedrive_ziel": "/OneDrive",
+  "onedrive_kopieren": [],
+  "onedrive_fotos_abgleich": [],
+  "onedrive_loeschen": false,
+  "onedrive_nur_loeschen": [],
+  "filen_uebersicht": false,
+  "filen_duplikate": false,
+  "filen_probelauf": true,
+  "filen_verschieben": [],
+  "filen_aufraeumen": []
+}

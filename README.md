@@ -11,4 +11,9 @@ Zusammen mit der eingebauten WebDAV-Integration landen Home-Assistant-Backups En
 
 Unterstützt: `aarch64` (z. B. Home Assistant Green), `amd64`.
 
+## Ohne Home Assistant OS (Docker, z. B. Unraid)
+
+Dasselbe Programm läuft auch als eigenständiger Container: `ghcr.io/uekala/filen-webdav`.
+Einrichtung und Umzug von der HA-App stehen in [deploy/standalone](deploy/standalone/README.md).
+
 Grundlage ist [rclone](https://rclone.org/filen/) mit dem Filen-Backend.
