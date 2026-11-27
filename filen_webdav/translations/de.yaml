@@ -29,9 +29,12 @@ configuration:
   foto_probelauf:
     name: Nur Probelauf
     description: 'An: nichts wird verschoben, nur ein Bericht (CSV in share/filen_webdav) und eine Benachrichtigung. Erst ausschalten, wenn der Bericht passt.'
+  foto_modus:
+    name: Modus
+    description: 'verschieben: Dateien wandern aus den Quellordnern ins Ziel. kopieren: Quellordner bleiben unverändert, nur neue Dateien werden ins Ziel kopiert – nötig für den Kamera-Upload-Ordner der Filen-App, die verschobene Fotos sonst erneut hochlädt.'
   foto_quellen:
     name: Quellordner in Filen
-    description: Ordner, die sortiert werden sollen. Den Kamera-Upload-Ordner nur eintragen, wenn die Filen-App verschobene Fotos nicht erneut hochlädt.
+    description: Ordner, die sortiert werden sollen. Für den Kamera-Upload-Ordner der Filen-App den Modus „kopieren“ wählen.
   foto_ziel:
     name: Zielordner in Filen
     description: Hier entstehen JJJJ/JJJJ-MM sowie _Duplikate, _Ohne-Datum und _Google-Metadaten.

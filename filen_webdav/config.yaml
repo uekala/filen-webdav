@@ -1,5 +1,5 @@
 name: Filen WebDAV
-version: "0.5.2"
+version: "0.5.3"
 slug: filen_webdav
 description: WebDAV-Zugang zu Filen.io für HA-Backups, dazu ein Sortierer, der Fotos in Filen nach Aufnahmedatum ordnet
 url: https://github.com/uekala/filen-webdav
@@ -35,6 +35,7 @@ options:
   log_level: INFO
   foto_sortierung: false
   foto_probelauf: true
+  foto_modus: verschieben
   foto_quellen:
     - /Fotos/Google-Fotos-Export-2026-11
     - /Fotos/Google-Fotos-nur-Sept-Export
@@ -66,6 +67,7 @@ schema:
   log_level: list(ERROR|NOTICE|INFO|DEBUG)
   foto_sortierung: bool
   foto_probelauf: bool
+  foto_modus: list(verschieben|kopieren)
   foto_quellen:
     - str
   foto_ziel: str

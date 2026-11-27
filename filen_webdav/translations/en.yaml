@@ -29,9 +29,12 @@ configuration:
   foto_probelauf:
     name: Dry run only
     description: 'On: nothing is moved, only a report (CSV in share/filen_webdav) and a notification.'
+  foto_modus:
+    name: Mode
+    description: 'verschieben (move): files leave the source folders. kopieren (copy): source folders stay untouched, only new files are copied to the target – needed for the Filen app camera upload folder, which re-uploads moved photos.'
   foto_quellen:
     name: Source folders in Filen
-    description: Folders to sort.
+    description: Folders to sort. For the Filen app camera upload folder choose the mode „kopieren“ (copy).
   foto_ziel:
     name: Target folder in Filen
     description: YYYY/YYYY-MM plus _Duplikate, _Ohne-Datum and _Google-Metadaten are created here.

@@ -61,8 +61,14 @@ Datum: zuerst aus dem Dateinamen, dann aus der Google-JSON, zuletzt aus den EXIF
 3. Passt der Bericht: **Nur Probelauf** ausschalten, App neu starten.
 4. Danach läuft die Sortierung täglich zur eingestellten Uhrzeit für neue Dateien in den Quellordnern.
 
-Kamera-Upload vom Handy: Die Filen-App kann neue Uploads selbst nach Datum ordnen. Den Kamera-Upload-Ordner nur
-als Quelle eintragen, wenn sicher ist, dass die App verschobene Fotos nicht erneut hochlädt.
+**Modus:** `verschieben` (Standard) holt die Dateien aus den Quellordnern heraus. `kopieren` lässt die Quellordner
+unverändert und kopiert nur Dateien ins Ziel, die dort noch nicht liegen (gleicher Name und gleiche Größe); `_Duplikate`
+und `_Google-Metadaten` entstehen dabei nicht. Bericht und Benachrichtigung gibt es im Kopier-Modus nur, wenn etwas
+Neues dazukam oder ein Fehler auftrat.
+
+Kamera-Upload vom Handy: Die Filen-App lädt jedes Foto erneut hoch, das sie im Kamera-Upload-Ordner nicht mehr findet.
+Diesen Ordner deshalb nur mit dem Modus `kopieren` als Quelle eintragen. Fotos, die noch auf dem Handy sind, liegen dann
+zweimal in Filen: im Upload-Ordner und sortiert im Ziel.
 
 ## 5. Umzug von OneDrive (optional)
 

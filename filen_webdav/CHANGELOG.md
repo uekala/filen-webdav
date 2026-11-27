@@ -1,5 +1,13 @@
 # Änderungen
 
+## 0.5.3
+
+- Fotosortierung: neue Option **Modus** (`foto_modus`). `kopieren` lässt die Quellordner unverändert und kopiert nur
+  neue Fotos und Videos ins Ziel; was dort schon liegt (gleicher Name und gleiche Größe), wird übersprungen. Für den
+  Kamera-Upload-Ordner der Filen-App nötig: Sie lädt Fotos, die aus diesem Ordner verschoben wurden, erneut hoch.
+  Im Kopier-Modus gibt es nur dann Bericht und Benachrichtigung, wenn etwas Neues dazukam oder ein Fehler auftrat.
+  Standard bleibt `verschieben`.
+
 ## 0.5.2
 
 - Aufräumen: neue Regel `gleichname: /A => /B` – gleiche Größe und gleicher Name (ohne Zusätze wie `_3f3258d9`,

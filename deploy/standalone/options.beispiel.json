@@ -9,6 +9,7 @@
   "log_level": "INFO",
   "foto_sortierung": false,
   "foto_probelauf": true,
+  "foto_modus": "verschieben",
   "foto_quellen": [
     "/Fotos/Google-Fotos-Export-2026-11",
     "/Fotos/Google-Fotos-nur-Sept-Export"

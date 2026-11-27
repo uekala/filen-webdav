@@ -11,6 +11,11 @@ Datumsquelle (in dieser Reihenfolge):
 Ohne Datum: <ziel>/_Ohne-Datum/
 Exakte Duplikate (gleicher Name + gleiche Größe in Byte): <ziel>/_Duplikate/
 Google-JSON-Dateien: nach der Sortierung nach <ziel>/_Google-Metadaten/
+
+Modus „verschieben“ (Standard): Dateien wandern aus den Quellordnern ins Ziel.
+Modus „kopieren“: Die Quellordner bleiben unverändert, neue Dateien werden ins Ziel kopiert;
+was dort schon liegt (gleicher Name + Größe), wird übersprungen. Für den Kamera-Upload-Ordner der
+Filen-App gedacht, die fehlende Fotos sonst erneut hochlädt.
 """
 
 import csv
@@ -94,6 +99,9 @@ class RC:
 
     def move(self, src, dst):
         self.call("operations/movefile", srcFs=self.fs, srcRemote=src, dstFs=self.fs, dstRemote=dst)
+
+    def copy(self, src, dst):
+        self.call("operations/copyfile", srcFs=self.fs, srcRemote=src, dstFs=self.fs, dstRemote=dst)
 
     def download(self, src, local_dir, name):
         self.call("operations/copyfile", srcFs=self.fs, srcRemote=src, dstFs=local_dir, dstRemote=name)
@@ -213,7 +221,7 @@ def unique_target(target, taken):
     raise RuntimeError(f"kein freier Name für {target}")
 
 
-def plan(rc, ziel, quellen, tmp):
+def plan(rc, ziel, quellen, tmp, kopieren=False):
     ziel = ziel.strip("/")
     # Bereits sortierter Bestand im Ziel (nur Jahresordner) als Duplikat- und Namensbasis
     taken, seen = set(), {}
@@ -233,7 +241,7 @@ def plan(rc, ziel, quellen, tmp):
     log(f"Im Ziel schon sortiert: {len(taken)} Dateien")
 
     actions = []  # (aktion, quelle, ziel, datumsquelle)
-    stats = {"sortiert": 0, "duplikat": 0, "ohne_datum": 0, "json": 0, "sonstige": 0}
+    stats = {"sortiert": 0, "duplikat": 0, "vorhanden": 0, "ohne_datum": 0, "json": 0, "sonstige": 0}
     json_cache = {}
     for q in quellen:
         q = q.strip("/")
@@ -257,6 +265,9 @@ def plan(rc, ziel, quellen, tmp):
                     stats["sonstige"] += 1
                     continue
                 key = dup_key(e)
+                if key in seen and kopieren:
+                    stats["vorhanden"] += 1  # schon im Ziel – Quelle bleibt, nichts zu tun
+                    continue
                 if key in seen:
                     rel = src[len(q) + 1:]
                     actions.append(("duplikat", src, f"{ziel}/_Duplikate/{os.path.basename(q)}/{rel}", f"wie {seen[key]}"))
@@ -291,7 +302,7 @@ def plan(rc, ziel, quellen, tmp):
                     stats["sortiert"] += 1
                 taken.add(target.lower())
                 seen[key] = target
-            for j in jsons:
+            for j in ([] if kopieren else jsons):
                 rel = j[len(q) + 1:]
                 actions.append(("json", j, f"{ziel}/_Google-Metadaten/{os.path.basename(q)}/{rel}", "-"))
                 stats["json"] += 1
@@ -340,46 +351,51 @@ def notify(title, message, nid="filen_fotosortierer", versuche=6):
             time.sleep(60)
 
 
-def run(rc, ziel, quellen, probelauf, bericht_dir):
+def run(rc, ziel, quellen, probelauf, bericht_dir, kopieren=False):
     start = time.time()
     tmp = tempfile.mkdtemp(prefix="fotos-", dir="/data" if os.path.isdir("/data") else None)
     try:
-        actions, stats = plan(rc, ziel, quellen, tmp)
+        actions, stats = plan(rc, ziel, quellen, tmp, kopieren)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
     fehler = 0
+    wort = "kopiert" if kopieren else "verschoben"
     if not probelauf:
         for i, (art, src, dst, _) in enumerate(actions, 1):
             try:
-                rc.move(src, dst)
+                (rc.copy if kopieren else rc.move)(src, dst)
             except Exception as e:
                 fehler += 1
-                log(f"FEHLER beim Verschieben {src} -> {dst}: {e}")
+                log(f"FEHLER beim {'Kopieren' if kopieren else 'Verschieben'} {src} -> {dst}: {e}")
             if i % 500 == 0:
-                log(f"{i}/{len(actions)} verschoben")
-        for q in quellen:
-            rc.rmdirs(q.strip("/"))
+                log(f"{i}/{len(actions)} {wort}")
+        if not kopieren:
+            for q in quellen:
+                rc.rmdirs(q.strip("/"))
 
-    os.makedirs(bericht_dir, exist_ok=True)
-    stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
-    bericht = os.path.join(bericht_dir, f"fotosortierung_{stamp}{'_probelauf' if probelauf else ''}.csv")
-    with open(bericht, "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh, delimiter=";")
-        w.writerow(["aktion", "von", "nach", "datum/grund"])
-        w.writerows(actions)
+    bericht = "-"
+    if actions or not kopieren:  # im Kopier-Modus kein leerer Bericht jede Nacht
+        os.makedirs(bericht_dir, exist_ok=True)
+        stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
+        bericht = os.path.join(bericht_dir, f"fotosortierung_{stamp}{'_probelauf' if probelauf else ''}.csv")
+        with open(bericht, "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh, delimiter=";")
+            w.writerow(["aktion", "von", "nach", "datum/grund"])
+            w.writerows(actions)
 
     dauer = int(time.time() - start)
-    modus = "Probelauf – nichts verschoben" if probelauf else f"verschoben, {fehler} Fehler"
+    modus = f"Probelauf – nichts {wort}" if probelauf else f"{wort}, {fehler} Fehler"
     text = (f"{modus}\n\n"
             f"📅 Sortiert: {stats['sortiert']}\n"
-            f"♻️ Duplikate: {stats['duplikat']}\n"
+            + (f"✅ Schon im Ziel: {stats['vorhanden']}\n" if kopieren else f"♻️ Duplikate: {stats['duplikat']}\n") +
             f"❓ Ohne Datum: {stats['ohne_datum']}\n"
             f"🧾 Google-JSON: {stats['json']}\n"
             f"📄 Andere Dateien (bleiben liegen): {stats['sonstige']}\n\n"
             f"Bericht: {bericht.replace('/share', 'share')} · Dauer {dauer // 60} min")
     log(text.replace("\n", " | "))
-    if actions or not probelauf:
+    # Im Kopier-Modus läuft der Abgleich jede Nacht – nur melden, wenn es etwas Neues oder Fehler gab
+    if actions or fehler or (not probelauf and not kopieren):
         notify("📸 Filen-Fotosortierung", text)
     return stats, fehler
 
@@ -389,9 +405,13 @@ def einmal(opt):
     if not quellen:
         log("Keine Quellordner eingetragen – nichts zu tun.")
         return
+    modus = opt.get("foto_modus", "verschieben")
+    if modus not in ("verschieben", "kopieren"):
+        log(f"Unbekannter foto_modus „{modus}“ – nichts zu tun.")
+        return
     try:
         run(RC(), opt.get("foto_ziel", "/Fotos"), quellen,
-            bool(opt.get("foto_probelauf", True)), "/share/filen_webdav")
+            bool(opt.get("foto_probelauf", True)), "/share/filen_webdav", modus == "kopieren")
     except Exception as e:
         log(f"FEHLER: {e}")
         notify("📸 Filen-Fotosortierung fehlgeschlagen", str(e))
