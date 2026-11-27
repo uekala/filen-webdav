@@ -207,6 +207,12 @@ def dup_key(entry):
     return (entry.get("Size"), name)
 
 
+def ohne_zaehler(key):
+    """Schlüssel ohne den Zusatz _1 … _9999, den unique_target bei Namensgleichheit anhängt."""
+    size, name = key
+    return (size, re.sub(r"_\d{1,4}(?=\.[^.]+$)", "", name))
+
+
 def unique_target(target, taken):
     """Freier Zielname; `taken` enthält Pfade in Kleinschreibung (Filen unterscheidet nicht)."""
     if target.lower() not in taken:
@@ -236,6 +242,8 @@ def plan(rc, ziel, quellen, tmp, kopieren=False):
         if is_year_dir(top) or top in ("_Ohne-Datum",):
             taken.add(p.lower())
             seen.setdefault(dup_key(e), p)
+            if kopieren:  # sonst würde ein früher als name_1.jpg abgelegtes Foto jede Nacht neu kopiert
+                seen.setdefault(ohne_zaehler(dup_key(e)), p)
         elif top in SPECIAL_DIRS:
             taken.add(p.lower())  # nie überschreiben, aber nicht als Original zählen
     log(f"Im Ziel schon sortiert: {len(taken)} Dateien")

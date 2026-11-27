@@ -1,5 +1,10 @@
 # Änderungen
 
+## 0.5.4
+
+- Fotosortierung im Modus `kopieren`: Fotos, die früher wegen eines gleichnamigen Fotos als `name_1.jpg` o. ä.
+  abgelegt wurden, gelten als vorhanden und werden nicht jede Nacht erneut kopiert.
+
 ## 0.5.3
 
 - Fotosortierung: neue Option **Modus** (`foto_modus`). `kopieren` lässt die Quellordner unverändert und kopiert nur
