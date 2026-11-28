@@ -116,7 +116,7 @@ class RC:
 
 # ---------------------------------------------------------------- Datum
 def plausible(d):
-    return d is not None and MIN_YEAR <= d.year and d <= dt.datetime.now() + dt.timedelta(days=1)
+    return d is not None and d.year >= MIN_YEAR and d <= dt.datetime.now() + dt.timedelta(days=1)
 
 
 def date_from_name(name):
@@ -258,7 +258,7 @@ def plan(rc, ziel, quellen, tmp, kopieren=False):
         by_dir = {}
         for e in entries:
             by_dir.setdefault(os.path.dirname(e["Path"]), []).append(e)
-        for d, files in sorted(by_dir.items()):
+        for _d, files in sorted(by_dir.items()):
             jsons = [f"{q}/{f['Path']}" for f in files if f["Name"].lower().endswith(".json")]
             for e in sorted(files, key=lambda x: x["Path"]):
                 geprueft = sum(stats.values())
@@ -370,7 +370,7 @@ def run(rc, ziel, quellen, probelauf, bericht_dir, kopieren=False):
     fehler = 0
     wort = "kopiert" if kopieren else "verschoben"
     if not probelauf:
-        for i, (art, src, dst, _) in enumerate(actions, 1):
+        for i, (_art, src, dst, _) in enumerate(actions, 1):
             try:
                 (rc.copy if kopieren else rc.move)(src, dst)
             except Exception as e:
