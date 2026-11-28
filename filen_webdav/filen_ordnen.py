@@ -5,18 +5,19 @@ Läuft einmal beim Start der App, wenn `filen_uebersicht` an ist oder `filen_ver
 Verschieben geht in Filen ohne neues Hochladen (rclone DirMove). Ein Ziel, das schon existiert, wird nie
 zusammengeführt – der Eintrag wird übersprungen, damit nichts überschrieben wird.
 """
+import contextlib
 import csv
 import datetime as dt
 import json
 import os
 import re
-import unicodedata
 import sys
 import time
+import unicodedata
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fotosortierer import RC, notify  # noqa: E402
+from fotosortierer import RC, notify
 
 OPTIONS = "/data/options.json"
 BERICHT_DIR = "/share/filen_webdav"
@@ -102,7 +103,7 @@ def uebersicht(rc):
         for p, s in sammle(rc, d):
             teile = p.split("/")[:-1]
             for k in range(0, min(len(teile), tiefe - 1) + 1):
-                a = agg["/" + "/".join([d] + teile[:k])]
+                a = agg["/" + "/".join([d, *teile[:k]])]
                 a[0] += 1
                 a[1] += s
             n += 1
@@ -303,7 +304,7 @@ def aufraeumen(rc, regeln, probelauf):
             ohne = [x.strip().strip("/") for x in aus.split(",") if x.strip()]
 
         def ausgenommen(pfad):
-            return any(unter(pfad, o) for o in ohne)
+            return any(unter(pfad, o) for o in ohne)  # noqa: B023 – wird in derselben Schleifenrunde benutzt
 
         if art == "weg":
             pfad = rest.strip().strip("/")
@@ -359,20 +360,18 @@ def aufraeumen(rc, regeln, probelauf):
                         n_b += s
             log(f"{'PROBELAUF ' if probelauf else ''}einmal /{a}: {len(weg)} Dateien, {groesse_text(n_b)} in den Papierkorb"
                 + (f", {unsicher} ohne lesbaren Hash – bleiben" if unsicher else ""))
-            for p, s, q in weg[:8]:
+            for p, _s, q in weg[:8]:
                 log(f"    /{p}  (bleibt: /{q})")
             if not probelauf:
                 fehler = 0
-                for p, s, q in weg:
+                for p, _s, _q in weg:
                     try:
                         nochmal(rc.call, "operations/deletefile", fs="filen:", remote=p, versuche=3, pause=10)
                     except Exception as e:
                         fehler += 1
                         log(f"FEHLER /{p}: {e}")
-                try:
+                with contextlib.suppress(Exception):
                     rc.call_job("operations/rmdirs", fs="filen:", remote=a, leaveRoot=True)
-                except Exception:
-                    pass
                 if fehler:
                     log(f"  {fehler} Dateien konnten nicht gelöscht werden")
             gesamt_n += len(weg)
@@ -421,20 +420,18 @@ def aufraeumen(rc, regeln, probelauf):
             f"{len(weg)} Dateien, {groesse_text(n_b)} in den Papierkorb"
             + (f", {unsicher} gleich groß, aber " + ("Name verschieden" if art == "gleichname" else "Inhalt nicht bestätigt")
                + " – bleiben" if unsicher else ""))
-        for p, s, q in weg[:8]:
+        for p, _s, q in weg[:8]:
             log(f"    /{p}  (= /{q})")
         if not probelauf:
             fehler = 0
-            for p, s, q in weg:
+            for p, _s, _q in weg:
                 try:
                     nochmal(rc.call, "operations/deletefile", fs="filen:", remote=p, versuche=3, pause=10)
                 except Exception as e:
                     fehler += 1
                     log(f"FEHLER /{p}: {e}")
-            try:
+            with contextlib.suppress(Exception):
                 rc.call_job("operations/rmdirs", fs="filen:", remote=a, leaveRoot=True)
-            except Exception:
-                pass
             if fehler:
                 log(f"  {fehler} Dateien konnten nicht gelöscht werden")
         gesamt_n += len(weg)

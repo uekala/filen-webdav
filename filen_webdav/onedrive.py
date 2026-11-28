@@ -23,12 +23,17 @@ import time
 import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fotosortierer import MEDIA_EXT, RC, ext_of, notify  # noqa: E402
+from fotosortierer import MEDIA_EXT, RC, ext_of, notify
 
 OD = "onedrive:"
 BERICHT_DIR = "/share/filen_webdav"
 ALTLAST_EXT = {"iso", "img", "vmdk", "vhd", "vhdx", "ova", "ovf", "exe", "msi", "dmg", "dlc", "bin", "apk"}
 ALTLAST_WORTE = re.compile(r"(backup|sicherung|setup|install|portable|keygen|crack|benchmark|pcmark)", re.I)
+
+
+def _lesen(pfad):
+    with open(pfad) as f:
+        return f.read()
 
 
 def log(msg):
@@ -141,7 +146,7 @@ def ausschluesse(eintrag, alle_pfade):
     regeln = []
     for p in alle_pfade:
         p = p.strip("/")
-        if p == e or p == ROOT:
+        if p in (e, ROOT):
             continue
         if e == "":
             rel = p
@@ -388,9 +393,9 @@ def schreibe_config(opt):
     json.loads(token)  # Format prüfen
     conf, marker = "/data/rclone.conf", "/data/onedrive_token.sha256"
     h = hashlib.sha256((token + drive_id).encode()).hexdigest()
-    if os.path.exists(marker) and open(marker).read().strip() == h and "[onedrive]" in open(conf).read():
+    if os.path.exists(marker) and _lesen(marker).strip() == h and "[onedrive]" in _lesen(conf):
         return 0
-    alt = open(conf).read() if os.path.exists(conf) else ""
+    alt = _lesen(conf) if os.path.exists(conf) else ""
     alt = re.sub(r"\[onedrive\][^\[]*", "", alt)
     with open(conf, "w") as fh:
         fh.write(alt.strip() + ("\n\n" if alt.strip() else "") +
